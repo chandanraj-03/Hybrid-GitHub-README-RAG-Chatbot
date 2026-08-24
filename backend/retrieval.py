@@ -4,9 +4,15 @@ Executes project-isolated vector search via Supabase pgvector and formats contex
 """
 
 from typing import List, Tuple
-from backend.config import BackendConfig
-from backend.schemas import SourceItem
-from backend.supabase_client import SupabaseService
+
+try:
+    from backend.config import BackendConfig
+    from backend.schemas import SourceItem
+    from backend.supabase_client import SupabaseService
+except ImportError:
+    from config import BackendConfig
+    from schemas import SourceItem
+    from supabase_client import SupabaseService
 
 
 class ReadmeRetriever:

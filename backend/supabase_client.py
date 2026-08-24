@@ -1,5 +1,9 @@
 from typing import Optional, Dict, Any, List
-from backend.config import BackendConfig
+
+try:
+    from backend.config import BackendConfig
+except ImportError:
+    from config import BackendConfig
 
 
 class SupabaseService:

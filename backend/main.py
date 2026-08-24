@@ -12,18 +12,39 @@ from fastapi import FastAPI, HTTPException, status
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
-from backend.config import BackendConfig
-from backend.schemas import (
-    ChatRequest,
-    ChatResponse,
-    ProjectResponse,
-    HealthResponse,
-    SourceItem,
-)
-from backend.embeddings import QuestionEmbedder
-from backend.generator import AnswerGenerator, FALLBACK_ANSWER
-from backend.retrieval import ReadmeRetriever
-from backend.supabase_client import SupabaseService
+import sys
+from pathlib import Path
+
+# Enable both standalone root execution (cd backend && uvicorn main:app) and package execution
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+
+try:
+    from backend.config import BackendConfig
+    from backend.schemas import (
+        ChatRequest,
+        ChatResponse,
+        ProjectResponse,
+        HealthResponse,
+        SourceItem,
+    )
+    from backend.embeddings import QuestionEmbedder
+    from backend.generator import AnswerGenerator, FALLBACK_ANSWER
+    from backend.retrieval import ReadmeRetriever
+    from backend.supabase_client import SupabaseService
+except ImportError:
+    from config import BackendConfig
+    from schemas import (
+        ChatRequest,
+        ChatResponse,
+        ProjectResponse,
+        HealthResponse,
+        SourceItem,
+    )
+    from embeddings import QuestionEmbedder
+    from generator import AnswerGenerator, FALLBACK_ANSWER
+    from retrieval import ReadmeRetriever
+    from supabase_client import SupabaseService
 
 # Configure logging
 logging.basicConfig(
@@ -32,6 +53,15 @@ logging.basicConfig(
 )
 logger = logging.getLogger("readme_rag_api")
 
+# Optimize PyTorch CPU threads & memory for low-resource cloud containers (Render Free Tier <512MB RAM)
+try:
+    import torch
+    torch.set_num_threads(1)
+    if hasattr(torch, "set_num_interop_threads"):
+        torch.set_num_interop_threads(1)
+except Exception:
+    pass
+
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -39,6 +69,7 @@ async def lifespan(app: FastAPI):
     Pre-warms embedding and generator models once during server startup.
     Ensures zero runtime re-initialization overhead.
     """
+    import gc
     logger.info("Initializing Render Chatbot Server...")
     logger.info(f"Loading Question Embedder ({BackendConfig.EMBEDDING_MODEL_NAME})...")
     try:
@@ -46,6 +77,8 @@ async def lifespan(app: FastAPI):
         logger.info("Question Embedder loaded successfully.")
     except Exception as e:
         logger.warning(f"Could not pre-load Question Embedder during startup: {e}")
+
+    gc.collect()
 
     logger.info(f"Loading Generator Model ({BackendConfig.GENERATOR_MODEL_NAME})...")
     try:

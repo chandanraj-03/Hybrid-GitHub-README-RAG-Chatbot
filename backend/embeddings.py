@@ -6,7 +6,10 @@ Loads SentenceTransformer once at startup and computes normalized vectors for us
 from typing import List, Optional
 import numpy as np
 
-from backend.config import BackendConfig
+try:
+    from backend.config import BackendConfig
+except ImportError:
+    from config import BackendConfig
 
 
 class QuestionEmbedder:

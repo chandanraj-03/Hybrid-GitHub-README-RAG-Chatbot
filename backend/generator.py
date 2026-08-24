@@ -5,7 +5,11 @@ Enforces hallucination control and fallback behaviors.
 """
 
 from typing import Optional
-from backend.config import BackendConfig
+
+try:
+    from backend.config import BackendConfig
+except ImportError:
+    from config import BackendConfig
 
 FALLBACK_ANSWER = "I couldn't find that information in the README.md."
 
@@ -42,9 +46,13 @@ class AnswerGenerator:
             self.model = AutoModelForCausalLM.from_pretrained(
                 self.model_name,
                 torch_dtype=torch.float32 if self.device == "cpu" else torch.float16,
+                low_cpu_mem_usage=True,
             ).to(self.device)
         else:
-            self.model = AutoModelForSeq2SeqLM.from_pretrained(self.model_name).to(self.device)
+            self.model = AutoModelForSeq2SeqLM.from_pretrained(
+                self.model_name,
+                low_cpu_mem_usage=True,
+            ).to(self.device)
 
         self.model.eval()
 
