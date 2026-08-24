@@ -1,3 +1,0 @@
-"""
-Local Indexing Pipeline Package.
-"""
