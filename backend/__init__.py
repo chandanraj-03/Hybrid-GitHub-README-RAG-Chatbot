@@ -1,3 +1,0 @@
-"""
-Render Chatbot Backend Package.
-"""
