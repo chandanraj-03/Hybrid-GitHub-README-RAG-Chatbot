@@ -79,10 +79,10 @@ def display_current_settings():
     print(BOLD + "2. Local Laptop LLM Service:" + RESET)
     print(f"   • Local Model    : {l_cfg.get('LOCAL_MODEL_NAME', 'Qwen/Qwen2.5-0.5B-Instruct')}")
     print(f"   • Device Mode    : {l_cfg.get('DEVICE', 'auto')}")
-    print(f"   • Laptop Port    : {l_cfg.get('PORT', '6036')}")
+    print(f"   • Laptop Port    : {l_cfg.get('PORT', '16036')}")
     print(f"   • Laptop Auth    : {l_cfg.get('LAPTOP_API_TOKEN', 'secret-laptop-token')}")
     print(f"   • Local Timeout  : {b_cfg.get('LOCAL_LLM_TIMEOUT', '25.0')}s")
-    print(f"   • Laptop URL     : {b_cfg.get('LAPTOP_API_URL', 'http://localhost:6036')}")
+    print(f"   • Laptop URL     : {b_cfg.get('LAPTOP_API_URL', 'http://localhost:16036')}")
     print()
     print(BOLD + "3. Cloud Fallback Keys:" + RESET)
     print(f"   • Gemini API Key : {'Configured ✓' if b_cfg.get('GEMINI_API_KEY') else 'Not set (Optional)'}")
@@ -152,7 +152,7 @@ def sync_to_render():
 def test_services():
     b_cfg = load_env_dict(BACKEND_ENV_PATH)
     l_cfg = load_env_dict(LAPTOP_ENV_PATH)
-    laptop_port = l_cfg.get("PORT", "6036")
+    laptop_port = l_cfg.get("PORT", "16036")
     render_url = b_cfg.get("RENDER_BACKEND_URL", "").strip().rstrip("/")
 
     print(CYAN + "\n[*] Testing service health..." + RESET)
@@ -169,14 +169,14 @@ def test_services():
 
     # 2. Local Backend server
     try:
-        r = requests.get("http://127.0.0.1:8080/api/health", timeout=3.0)
+        r = requests.get("http://127.0.0.1:18080/api/health", timeout=3.0)
         if r.status_code == 200:
             data = r.json()
-            print(GREEN + f"[✓] Local Backend Server (Port 8080): ONLINE (Indexed chunks: {data.get('indexed_chunks')})" + RESET)
+            print(GREEN + f"[✓] Local Backend Server (Port 18080): ONLINE (Indexed chunks: {data.get('indexed_chunks')})" + RESET)
         else:
             print(YELLOW + f"[!] Local Backend Server returned status {r.status_code}" + RESET)
     except Exception:
-        print(RED + "[✗] Local Backend Server (Port 8080): OFFLINE" + RESET)
+        print(RED + "[✗] Local Backend Server (Port 18080): OFFLINE" + RESET)
 
     # 3. Remote Render Backend
     if render_url:
@@ -245,7 +245,7 @@ def main():
             if chosen_model:
                 update_setting("LOCAL_MODEL_NAME", chosen_model, "laptop")
         elif choice == "7":
-            port_val = input("Enter laptop port [default 6036]: ").strip()
+            port_val = input("Enter laptop port [default 16036]: ").strip()
             if port_val:
                 update_setting("PORT", port_val, "laptop")
                 update_setting("LAPTOP_API_URL", f"http://localhost:{port_val}", "backend")

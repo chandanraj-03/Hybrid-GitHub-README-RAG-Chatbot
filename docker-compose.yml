@@ -6,7 +6,7 @@ services:
       context: ./backend
       dockerfile: Dockerfile
     ports:
-      - "8080:8080"
+      - "18080:18080"
     environment:
       - GITHUB_REPO_URL=https://github.com/tiangolo/fastapi
       - GITHUB_BRANCH=main

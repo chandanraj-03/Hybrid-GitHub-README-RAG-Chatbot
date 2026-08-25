@@ -171,7 +171,7 @@ pip install -r requirements.txt
 cp .env.example .env
 # Set GEMINI_API_KEY, GITHUB_REPO_URL, and LAPTOP_API_URL
 
-python -m uvicorn backend.app.main:app --host 0.0.0.0 --port 8080 --reload
+python -m uvicorn backend.app.main:app --host 0.0.0.0 --port 18080 --reload
 ```
 
 ### 3. Open the Frontend

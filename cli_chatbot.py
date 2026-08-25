@@ -13,7 +13,7 @@ import os
 import time
 import requests
 
-BACKEND_URL = os.environ.get("BACKEND_URL", "http://127.0.0.1:8080")
+BACKEND_URL = os.environ.get("BACKEND_URL", "http://127.0.0.1:18080")
 
 # ANSI Color codes for Windows Command Prompt & PowerShell
 CYAN = "\033[96m"

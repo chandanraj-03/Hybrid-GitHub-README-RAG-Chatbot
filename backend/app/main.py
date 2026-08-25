@@ -55,7 +55,7 @@ async def lifespan(app: FastAPI):
 
     # 3. LLM Providers Cascade
     local_provider = LocalLaptopProvider(
-        base_url=settings.LAPTOP_API_URL or "http://localhost:6036",
+        base_url=settings.LAPTOP_API_URL or "http://localhost:16036",
         auth_token=settings.LAPTOP_API_TOKEN,
         timeout=settings.LOCAL_LLM_TIMEOUT,
     )

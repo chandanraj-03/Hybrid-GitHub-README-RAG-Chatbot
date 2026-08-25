@@ -1,16 +1,19 @@
 """
 Hybrid GitHub README RAG - Cloudflare Tunnel Runner with Auto-Render Registration
 =================================================================================
-Runs cloudflared tunnel on port 6036, extracts the public HTTPS URL,
+Runs cloudflared tunnel on port 16036, extracts the public HTTPS URL,
 and automatically registers it with your deployed Render backend.
+Automatically downloads official cloudflared.exe if not already installed.
 """
 
 import os
 import sys
 import re
+import shutil
 import subprocess
 import requests
 import threading
+import urllib.request
 
 CYAN = "\033[96m"
 GREEN = "\033[92m"
@@ -21,8 +24,11 @@ BOLD = "\033[1m"
 DIM = "\033[2m"
 RESET = "\033[0m"
 
-BACKEND_ENV_PATH = os.path.join(os.path.dirname(__file__), "backend", ".env")
-LAPTOP_PORT = 6036
+PROJECT_ROOT = os.path.dirname(os.path.abspath(__file__))
+BACKEND_ENV_PATH = os.path.join(PROJECT_ROOT, "backend", ".env")
+LOCAL_CLOUDFLARED = os.path.join(PROJECT_ROOT, "cloudflared.exe")
+LAPTOP_PORT = 16036
+CLOUDFLARED_DOWNLOAD_URL = "https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-windows-amd64.exe"
 
 
 def load_env():
@@ -37,6 +43,43 @@ def load_env():
                     k, v = line.split("=", 1)
                     config[k.strip()] = v.strip()
     return config
+
+
+def download_cloudflared():
+    """Downloads official standalone cloudflared.exe into the project root."""
+    print(YELLOW + "\n[*] Downloading official Cloudflare Tunnel executable (cloudflared.exe)..." + RESET)
+    print(DIM + f"    Source: {CLOUDFLARED_DOWNLOAD_URL}" + RESET)
+    print(DIM + f"    Target: {LOCAL_CLOUDFLARED}" + RESET)
+
+    def progress_hook(count, block_size, total_size):
+        if total_size > 0:
+            percent = int(count * block_size * 100 / total_size)
+            downloaded_mb = count * block_size / (1024 * 1024)
+            total_mb = total_size / (1024 * 1024)
+            sys.stdout.write(f"\r{CYAN}[*] Downloading: {percent}% ({downloaded_mb:.1f} MB / {total_mb:.1f} MB){RESET}")
+            sys.stdout.flush()
+
+    try:
+        urllib.request.urlretrieve(CLOUDFLARED_DOWNLOAD_URL, LOCAL_CLOUDFLARED, reporthook=progress_hook)
+        print(GREEN + f"\n[✓] Successfully downloaded cloudflared.exe!" + RESET)
+        return LOCAL_CLOUDFLARED
+    except Exception as exc:
+        print(RED + f"\n[✗] Failed to download cloudflared: {exc}" + RESET)
+        print(YELLOW + "    You can run manually: winget install Cloudflare.cloudflared" + RESET)
+        return None
+
+
+def get_cloudflared_path():
+    """Locates cloudflared executable in project root or system PATH, or downloads it."""
+    if os.path.exists(LOCAL_CLOUDFLARED):
+        return LOCAL_CLOUDFLARED
+
+    system_path = shutil.which("cloudflared")
+    if system_path:
+        return system_path
+
+    # Not found, download it automatically
+    return download_cloudflared()
 
 
 def register_tunnel_with_render(tunnel_url: str, render_url: str, token: str):
@@ -81,7 +124,6 @@ def main():
         user_render = input(BOLD + "Render Backend URL (press Enter to skip): " + RESET).strip()
         if user_render:
             render_url = user_render
-            # Append to .env
             try:
                 with open(BACKEND_ENV_PATH, "a", encoding="utf-8") as f:
                     f.write(f"\nRENDER_BACKEND_URL={render_url}\n")
@@ -89,8 +131,16 @@ def main():
             except Exception:
                 pass
 
-    print(CYAN + f"[*] Launching cloudflared tunnel pointing to http://localhost:{LAPTOP_PORT}..." + RESET)
-    cmd = ["cloudflared", "tunnel", "--url", f"http://localhost:{LAPTOP_PORT}"]
+    cloudflared_bin = get_cloudflared_path()
+    if not cloudflared_bin or not os.path.exists(cloudflared_bin):
+        print(RED + "\n[✗] Could not find or download cloudflared.exe." + RESET)
+        input("Press Enter to exit...")
+        return
+
+    print(CYAN + f"[*] Launching Cloudflare Tunnel using: {cloudflared_bin}" + RESET)
+    print(CYAN + f"[*] Tunneling target: http://localhost:{LAPTOP_PORT}..." + RESET)
+
+    cmd = [cloudflared_bin, "tunnel", "--url", f"http://localhost:{LAPTOP_PORT}"]
 
     try:
         proc = subprocess.Popen(
@@ -100,9 +150,8 @@ def main():
             text=True,
             bufsize=1,
         )
-    except FileNotFoundError:
-        print(RED + "\n[✗] 'cloudflared' command not found." + RESET)
-        print(YELLOW + "    Please install Cloudflare Tunnel (or run 'winget install Cloudflare.cloudflared').\n" + RESET)
+    except Exception as e:
+        print(RED + f"\n[✗] Error starting tunnel process: {e}" + RESET)
         input("Press Enter to exit...")
         return
 

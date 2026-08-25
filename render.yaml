@@ -13,7 +13,7 @@ services:
       - key: GITHUB_REPO_URL
         value: https://github.com/tiangolo/fastapi
       - key: LAPTOP_API_URL
-        value: http://localhost:6036
+        value: http://localhost:16036
       - key: LAPTOP_API_TOKEN
         value: secret-laptop-token
       - key: LOCAL_LLM_TIMEOUT

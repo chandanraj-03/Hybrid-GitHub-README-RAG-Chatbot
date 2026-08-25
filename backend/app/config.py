@@ -32,7 +32,7 @@ class Settings(BaseSettings):
 
     # 1. Primary: Local Laptop LLM Configuration
     LAPTOP_API_URL: Optional[str] = Field(
-        default="http://localhost:6036",
+        default="http://localhost:16036",
         description="Base URL for local laptop LLM API or Cloudflare tunnel URL",
     )
     LAPTOP_API_TOKEN: Optional[str] = Field(
