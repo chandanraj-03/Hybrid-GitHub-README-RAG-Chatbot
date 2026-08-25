@@ -60,11 +60,21 @@ class Settings(BaseSettings):
         description="xAI API key for Grok fallback inference",
     )
     GROK_MODEL: str = Field(
-        default="grok-2-latest",
-        description="xAI model ID (e.g. grok-2-latest, grok-beta)",
+        default="grok-2",
+        description="xAI model ID (e.g. grok-2, grok-beta)",
     )
 
-    # 4. Fallback Tier 3: OpenRouter Configuration
+    # 4. Fallback Tier 3: Groq Cloud Configuration
+    GROQ_API_KEY: Optional[str] = Field(
+        default=None,
+        description="Groq API key for ultra-fast free fallback inference",
+    )
+    GROQ_MODEL: str = Field(
+        default="llama-3.3-70b-versatile",
+        description="Groq model identifier",
+    )
+
+    # 5. Fallback Tier 4: OpenRouter Configuration
     OPENROUTER_API_KEY: Optional[str] = Field(
         default=None,
         description="OpenRouter API key for broad multi-model fallback",
@@ -76,7 +86,7 @@ class Settings(BaseSettings):
 
     # Fallback Priority Cascade Order
     FALLBACK_CASCADE_ORDER: str = Field(
-        default="local,gemini,grok,openrouter",
+        default="local,gemini,groq,grok,openrouter",
         description="Comma-separated priority list of providers to attempt",
     )
 

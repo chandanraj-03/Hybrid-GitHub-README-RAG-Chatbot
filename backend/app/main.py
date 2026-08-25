@@ -18,6 +18,7 @@ from backend.app.providers.base import BaseLLMProvider
 from backend.app.providers.local import LocalLaptopProvider
 from backend.app.providers.gemini import GeminiProvider
 from backend.app.providers.grok import GrokProvider
+from backend.app.providers.groq import GroqProvider
 from backend.app.providers.openrouter import OpenRouterProvider
 from backend.app.services.laptop_health import LaptopHealthService
 from backend.app.services.orchestrator import RagOrchestrator
@@ -67,6 +68,10 @@ async def lifespan(app: FastAPI):
         api_key=settings.GROK_API_KEY,
         model=settings.GROK_MODEL,
     )
+    groq_provider = GroqProvider(
+        api_key=settings.GROQ_API_KEY,
+        model=settings.GROQ_MODEL,
+    )
     openrouter_provider = OpenRouterProvider(
         api_key=settings.OPENROUTER_API_KEY,
         model=settings.OPENROUTER_MODEL,
@@ -76,6 +81,7 @@ async def lifespan(app: FastAPI):
     provider_map = {
         "local": local_provider,
         "gemini": gemini_provider,
+        "groq": groq_provider,
         "grok": grok_provider,
         "openrouter": openrouter_provider,
     }
@@ -102,6 +108,7 @@ async def lifespan(app: FastAPI):
     app.state.sync_manager = sync_manager
     app.state.local_provider = local_provider
     app.state.gemini_provider = gemini_provider
+    app.state.groq_provider = groq_provider
     app.state.grok_provider = grok_provider
     app.state.openrouter_provider = openrouter_provider
     app.state.laptop_health = laptop_health

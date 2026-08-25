@@ -86,9 +86,10 @@ def display_current_settings():
     print()
     print(BOLD + "3. Cloud Fallback Keys:" + RESET)
     print(f"   • Gemini API Key : {'Configured ✓' if b_cfg.get('GEMINI_API_KEY') else 'Not set (Optional)'}")
+    print(f"   • Groq API Key   : {'Configured ✓' if b_cfg.get('GROQ_API_KEY') else 'Not set (Optional free tier)'}")
     print(f"   • Grok API Key   : {'Configured ✓' if b_cfg.get('GROK_API_KEY') else 'Not set (Optional)'}")
     print(f"   • OpenRouter Key : {'Configured ✓' if b_cfg.get('OPENROUTER_API_KEY') else 'Not set (Optional)'}")
-    print(f"   • Cascade Order  : {b_cfg.get('FALLBACK_CASCADE_ORDER', 'local,gemini,grok,openrouter')}")
+    print(f"   • Cascade Order  : {b_cfg.get('FALLBACK_CASCADE_ORDER', 'local,gemini,groq,grok,openrouter')}")
     print()
     print(BOLD + "4. Remote Render Deployment:" + RESET)
     print(f"   • Render App URL : {b_cfg.get('RENDER_BACKEND_URL', 'Not configured (e.g. https://xxx.onrender.com)')}")
@@ -124,11 +125,12 @@ def sync_to_render():
 
     payload = {
         "gemini_api_key": b_cfg.get("GEMINI_API_KEY", ""),
+        "groq_api_key": b_cfg.get("GROQ_API_KEY", ""),
         "grok_api_key": b_cfg.get("GROK_API_KEY", ""),
         "openrouter_api_key": b_cfg.get("OPENROUTER_API_KEY", ""),
         "github_repo_url": b_cfg.get("GITHUB_REPO_URL", ""),
         "local_llm_timeout": float(b_cfg.get("LOCAL_LLM_TIMEOUT", 25.0)),
-        "fallback_cascade_order": b_cfg.get("FALLBACK_CASCADE_ORDER", "local,gemini,grok,openrouter"),
+        "fallback_cascade_order": b_cfg.get("FALLBACK_CASCADE_ORDER", "local,gemini,groq,grok,openrouter"),
     }
 
     print(CYAN + f"\n[*] Sending live configuration sync to {render_url}..." + RESET)
@@ -199,12 +201,13 @@ def main():
         print(BOLD + "Configure Options:" + RESET)
         print("  [1] Change Knowledge Base GitHub Repository URL")
         print("  [2] Set/Update Google Gemini API Key")
-        print("  [3] Set/Update xAI Grok API Key")
-        print("  [4] Set/Update OpenRouter API Key")
-        print("  [5] Set/Update Remote Render Backend URL")
-        print("  [6] Change Local Model or Device Mode (CUDA/CPU)")
-        print("  [7] Change Local LLM Port & Timeout")
-        print("  [8] Test Service Connectivity (Health Probe)")
+        print("  [3] Set/Update Groq Cloud API Key (Free tier LPU)")
+        print("  [4] Set/Update xAI Grok API Key")
+        print("  [5] Set/Update OpenRouter API Key")
+        print("  [6] Set/Update Remote Render Backend URL")
+        print("  [7] Change Local Model or Device Mode (CUDA/CPU)")
+        print("  [8] Change Local LLM Port & Timeout")
+        print("  [9] Test Service Connectivity (Health Probe)")
         print(BOLD + GREEN + "  [S] Sync All API Keys & Settings to Render Backend Now" + RESET)
         print("  [0] Back / Exit")
         print()
@@ -221,16 +224,19 @@ def main():
             val = input("Enter Gemini API Key (or empty to clear): ").strip()
             update_setting("GEMINI_API_KEY", val, "backend")
         elif choice == "3":
+            val = input("Enter Groq Cloud API Key (or empty to clear): ").strip()
+            update_setting("GROQ_API_KEY", val, "backend")
+        elif choice == "4":
             val = input("Enter Grok API Key (or empty to clear): ").strip()
             update_setting("GROK_API_KEY", val, "backend")
-        elif choice == "4":
+        elif choice == "5":
             val = input("Enter OpenRouter API Key (or empty to clear): ").strip()
             update_setting("OPENROUTER_API_KEY", val, "backend")
-        elif choice == "5":
+        elif choice == "6":
             val = input("Enter Render Backend URL (e.g. https://xxx.onrender.com): ").strip()
             if val:
                 update_setting("RENDER_BACKEND_URL", val, "backend")
-        elif choice == "6":
+        elif choice == "7":
             print("\nAvailable models (or enter custom HuggingFace identifier):")
             print("  1. Qwen/Qwen2.5-0.5B-Instruct (Default, fast & lightweight)")
             print("  2. TinyLlama/TinyLlama-1.1B-Chat-v1.0")
@@ -244,7 +250,7 @@ def main():
             chosen_model = m_map.get(m_choice, m_choice)
             if chosen_model:
                 update_setting("LOCAL_MODEL_NAME", chosen_model, "laptop")
-        elif choice == "7":
+        elif choice == "8":
             port_val = input("Enter laptop port [default 16036]: ").strip()
             if port_val:
                 update_setting("PORT", port_val, "laptop")
@@ -252,7 +258,7 @@ def main():
             to_val = input("Enter timeout in seconds (e.g. 25.0): ").strip()
             if to_val:
                 update_setting("LOCAL_LLM_TIMEOUT", to_val, "backend")
-        elif choice == "8":
+        elif choice == "9":
             test_services()
         elif choice == "s":
             sync_to_render()

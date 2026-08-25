@@ -8,6 +8,7 @@ from backend.app.providers.base import BaseLLMProvider
 from backend.app.providers.local import LocalLaptopProvider
 from backend.app.providers.gemini import GeminiProvider
 from backend.app.providers.grok import GrokProvider
+from backend.app.providers.groq import GroqProvider
 from backend.app.providers.openrouter import OpenRouterProvider
 
 logger = logging.getLogger("admin_api")
@@ -47,6 +48,7 @@ def verify_admin_token(
 class UpdateConfigRequest(BaseModel):
     laptop_api_url: Optional[str] = Field(default=None, description="New Cloudflare tunnel or laptop URL")
     gemini_api_key: Optional[str] = Field(default=None, description="Google Gemini API key")
+    groq_api_key: Optional[str] = Field(default=None, description="Groq Cloud API key")
     grok_api_key: Optional[str] = Field(default=None, description="xAI Grok API key")
     openrouter_api_key: Optional[str] = Field(default=None, description="OpenRouter API key")
     github_repo_url: Optional[str] = Field(default=None, description="GitHub repository URL")
@@ -64,6 +66,7 @@ def rebuild_provider_cascade(app):
     provider_map = {
         "local": app.state.local_provider,
         "gemini": app.state.gemini_provider,
+        "groq": app.state.groq_provider,
         "grok": app.state.grok_provider,
         "openrouter": app.state.openrouter_provider,
     }
@@ -119,6 +122,12 @@ async def update_runtime_config(payload: UpdateConfigRequest, request: Request) 
         settings.GEMINI_API_KEY = key if key else None
         request.app.state.gemini_provider.api_key = key if key else None
         updated_fields.append("gemini_api_key")
+
+    if payload.groq_api_key is not None:
+        key = payload.groq_api_key.strip()
+        settings.GROQ_API_KEY = key if key else None
+        request.app.state.groq_provider.api_key = key if key else None
+        updated_fields.append("groq_api_key")
 
     if payload.grok_api_key is not None:
         key = payload.grok_api_key.strip()
