@@ -35,4 +35,4 @@ services:
       - key: TOP_K_CHUNKS
         value: "4"
       - key: EMBEDDING_PROVIDER
-        value: sentence_transformers
+        value: fast

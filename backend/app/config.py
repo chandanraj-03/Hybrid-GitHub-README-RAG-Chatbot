@@ -86,8 +86,8 @@ class Settings(BaseSettings):
         description="Number of relevant README chunks to retrieve",
     )
     EMBEDDING_PROVIDER: str = Field(
-        default="sentence_transformers",
-        description="Embedding provider: 'sentence_transformers', 'gemini', or 'local'",
+        default="fast",
+        description="Embedding provider: 'fast', 'gemini', or 'sentence_transformers'",
     )
 
 
