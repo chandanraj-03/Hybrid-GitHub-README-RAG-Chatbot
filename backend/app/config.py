@@ -32,7 +32,7 @@ class Settings(BaseSettings):
 
     # 1. Primary: Local Laptop LLM Configuration
     LAPTOP_API_URL: Optional[str] = Field(
-        default="http://localhost:8000",
+        default="http://localhost:6036",
         description="Base URL for local laptop LLM API or Cloudflare tunnel URL",
     )
     LAPTOP_API_TOKEN: Optional[str] = Field(
@@ -74,19 +74,9 @@ class Settings(BaseSettings):
         description="OpenRouter model identifier",
     )
 
-    # 5. Fallback Tier 4: Groq Cloud Configuration
-    GROQ_API_KEY: Optional[str] = Field(
-        default=None,
-        description="Groq API key for low-latency LPU fallback inference",
-    )
-    GROQ_MODEL: str = Field(
-        default="llama-3.3-70b-versatile",
-        description="Groq model identifier",
-    )
-
     # Fallback Priority Cascade Order
     FALLBACK_CASCADE_ORDER: str = Field(
-        default="local,gemini,grok,openrouter,groq",
+        default="local,gemini,grok,openrouter",
         description="Comma-separated priority list of providers to attempt",
     )
 

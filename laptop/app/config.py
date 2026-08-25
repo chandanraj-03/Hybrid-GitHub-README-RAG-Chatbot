@@ -20,7 +20,7 @@ class LaptopSettings(BaseSettings):
         description="Bearer token for securing laptop LLM endpoint over Cloudflare Tunnel",
     )
     PORT: int = Field(
-        default=8000,
+        default=6036,
         description="Port for laptop FastAPI server",
     )
     DEVICE: str = Field(

@@ -11,7 +11,7 @@ echo ===================================================================
 echo.
 echo   [1] Start Full Stack & Open Terminal Chatbot (Recommended)
 echo   [2] Launch Interactive Terminal Chatbot
-echo   [3] Start Local Laptop LLM Service (Port 8000)
+echo   [3] Start Local Laptop LLM Service (Port 6036)
 echo   [4] Start Backend API Server (Port 8080)
 echo   [5] Expose Laptop via Cloudflare Quick Tunnel (for Render)
 echo   [6] Configure Settings & API Keys
@@ -36,8 +36,8 @@ goto MENU
 
 :START_ALL
 echo.
-echo [*] Starting Local Laptop LLM Service on port 8000 in new window...
-start "Laptop LLM Service (Port 8000)" cmd /k "title Laptop LLM Service && python -m uvicorn laptop.app.main:app --host 0.0.0.0 --port 8000"
+echo [*] Starting Local Laptop LLM Service on port 6036 in new window...
+start "Laptop LLM Service (Port 6036)" cmd /k "title Laptop LLM Service && python -m uvicorn laptop.app.main:app --host 0.0.0.0 --port 6036"
 timeout /t 3 /nobreak >nul
 
 echo [*] Starting Backend API Server on port 8080 in new window...
@@ -58,8 +58,8 @@ goto MENU
 
 :START_LAPTOP
 echo.
-echo [*] Starting Local Laptop LLM Service on port 8000 in new window...
-start "Laptop LLM Service (Port 8000)" cmd /k "title Laptop LLM Service && python -m uvicorn laptop.app.main:app --host 0.0.0.0 --port 8000"
+echo [*] Starting Local Laptop LLM Service on port 6036 in new window...
+start "Laptop LLM Service (Port 6036)" cmd /k "title Laptop LLM Service && python -m uvicorn laptop.app.main:app --host 0.0.0.0 --port 6036"
 goto MENU
 
 :START_BACKEND
@@ -70,8 +70,8 @@ goto MENU
 
 :START_TUNNEL
 echo.
-echo [*] Starting Cloudflare Quick Tunnel for port 8000...
-start "Cloudflare Quick Tunnel" cmd /k "title Cloudflare Tunnel && cloudflared tunnel --url http://localhost:8000"
+echo [*] Starting Cloudflare Quick Tunnel for port 6036...
+start "Cloudflare Quick Tunnel" cmd /k "title Cloudflare Tunnel && cloudflared tunnel --url http://localhost:6036"
 goto MENU
 
 :SETTINGS

@@ -19,7 +19,6 @@ from backend.app.providers.local import LocalLaptopProvider
 from backend.app.providers.gemini import GeminiProvider
 from backend.app.providers.grok import GrokProvider
 from backend.app.providers.openrouter import OpenRouterProvider
-from backend.app.providers.groq import GroqProvider
 from backend.app.services.laptop_health import LaptopHealthService
 from backend.app.services.orchestrator import RagOrchestrator
 from backend.app.api.health import router as health_router
@@ -55,7 +54,7 @@ async def lifespan(app: FastAPI):
 
     # 3. LLM Providers Cascade
     local_provider = LocalLaptopProvider(
-        base_url=settings.LAPTOP_API_URL or "http://localhost:8000",
+        base_url=settings.LAPTOP_API_URL or "http://localhost:6036",
         auth_token=settings.LAPTOP_API_TOKEN,
         timeout=settings.LOCAL_LLM_TIMEOUT,
     )
@@ -71,10 +70,6 @@ async def lifespan(app: FastAPI):
         api_key=settings.OPENROUTER_API_KEY,
         model=settings.OPENROUTER_MODEL,
     )
-    groq_provider = GroqProvider(
-        api_key=settings.GROQ_API_KEY,
-        model=settings.GROQ_MODEL,
-    )
 
     # Map provider names to instances
     provider_map = {
@@ -82,7 +77,6 @@ async def lifespan(app: FastAPI):
         "gemini": gemini_provider,
         "grok": grok_provider,
         "openrouter": openrouter_provider,
-        "groq": groq_provider,
     }
 
     # Construct ordered cascade list based on settings
@@ -109,7 +103,6 @@ async def lifespan(app: FastAPI):
     app.state.gemini_provider = gemini_provider
     app.state.grok_provider = grok_provider
     app.state.openrouter_provider = openrouter_provider
-    app.state.groq_provider = groq_provider
     app.state.laptop_health = laptop_health
     app.state.orchestrator = orchestrator
 

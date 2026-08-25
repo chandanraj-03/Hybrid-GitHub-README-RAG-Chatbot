@@ -28,12 +28,8 @@ services:
         sync: false
       - key: OPENROUTER_MODEL
         value: meta-llama/llama-3.3-70b-instruct
-      - key: GROQ_API_KEY
-        sync: false
-      - key: GROQ_MODEL
-        value: llama-3.3-70b-versatile
       - key: FALLBACK_CASCADE_ORDER
-        value: local,gemini,grok,openrouter,groq
+        value: local,gemini,grok,openrouter
       - key: TOP_K_CHUNKS
         value: "4"
       - key: EMBEDDING_PROVIDER

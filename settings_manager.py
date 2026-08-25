@@ -40,7 +40,6 @@ def load_env_dict(path):
 
 
 def save_env_dict(path, config):
-    # Read original file lines to preserve comments
     lines = []
     keys_written = set()
     if os.path.exists(path):
@@ -80,17 +79,16 @@ def display_current_settings():
     print(BOLD + "2. Local Laptop LLM Service:" + RESET)
     print(f"   • Local Model    : {l_cfg.get('LOCAL_MODEL_NAME', 'Qwen/Qwen2.5-0.5B-Instruct')}")
     print(f"   • Device Mode    : {l_cfg.get('DEVICE', 'auto')}")
-    print(f"   • Laptop Port    : {l_cfg.get('PORT', '8000')}")
+    print(f"   • Laptop Port    : {l_cfg.get('PORT', '6036')}")
     print(f"   • Laptop Auth    : {l_cfg.get('LAPTOP_API_TOKEN', 'secret-laptop-token')}")
     print(f"   • Local Timeout  : {b_cfg.get('LOCAL_LLM_TIMEOUT', '25.0')}s")
-    print(f"   • Laptop URL     : {b_cfg.get('LAPTOP_API_URL', 'http://localhost:8000')}")
+    print(f"   • Laptop URL     : {b_cfg.get('LAPTOP_API_URL', 'http://localhost:6036')}")
     print()
     print(BOLD + "3. Cloud Fallback Keys:" + RESET)
     print(f"   • Gemini API Key : {'Configured ✓' if b_cfg.get('GEMINI_API_KEY') else 'Not set (Optional)'}")
     print(f"   • Grok API Key   : {'Configured ✓' if b_cfg.get('GROK_API_KEY') else 'Not set (Optional)'}")
     print(f"   • OpenRouter Key : {'Configured ✓' if b_cfg.get('OPENROUTER_API_KEY') else 'Not set (Optional)'}")
-    print(f"   • Groq API Key   : {'Configured ✓' if b_cfg.get('GROQ_API_KEY') else 'Not set (Optional)'}")
-    print(f"   • Cascade Order  : {b_cfg.get('FALLBACK_CASCADE_ORDER', 'local,gemini,grok,openrouter,groq')}")
+    print(f"   • Cascade Order  : {b_cfg.get('FALLBACK_CASCADE_ORDER', 'local,gemini,grok,openrouter')}")
     print(CYAN + "=" * 65 + RESET + "\n")
 
 
@@ -103,17 +101,19 @@ def update_setting(key, value, target="backend"):
 
 
 def test_services():
+    l_cfg = load_env_dict(LAPTOP_ENV_PATH)
+    laptop_port = l_cfg.get("PORT", "6036")
     print(CYAN + "\n[*] Testing service health..." + RESET)
     # 1. Laptop server
     try:
-        r = requests.get("http://127.0.0.1:8000/health", timeout=3.0)
+        r = requests.get(f"http://127.0.0.1:{laptop_port}/health", timeout=3.0)
         if r.status_code == 200:
             data = r.json()
-            print(GREEN + f"[✓] Laptop LLM Service (Port 8000): ONLINE (Model: {data.get('model')})" + RESET)
+            print(GREEN + f"[✓] Laptop LLM Service (Port {laptop_port}): ONLINE (Model: {data.get('model')})" + RESET)
         else:
             print(YELLOW + f"[!] Laptop LLM Service returned status {r.status_code}" + RESET)
     except Exception:
-        print(RED + "[✗] Laptop LLM Service (Port 8000): OFFLINE" + RESET)
+        print(RED + f"[✗] Laptop LLM Service (Port {laptop_port}): OFFLINE" + RESET)
 
     # 2. Backend server
     try:
@@ -135,16 +135,15 @@ def main():
         print(BOLD + "Configure Options:" + RESET)
         print("  [1] Change Knowledge Base GitHub Repository URL")
         print("  [2] Set/Update Google Gemini API Key")
-        print("  [3] Set/Update Groq Cloud API Key")
-        print("  [4] Set/Update xAI Grok API Key")
-        print("  [5] Set/Update OpenRouter API Key")
-        print("  [6] Change Local Model or Device Mode (CUDA/CPU)")
-        print("  [7] Change Local LLM Timeout (seconds)")
-        print("  [8] Test Service Connectivity (Health Probe)")
+        print("  [3] Set/Update xAI Grok API Key")
+        print("  [4] Set/Update OpenRouter API Key")
+        print("  [5] Change Local Model or Device Mode (CUDA/CPU)")
+        print("  [6] Change Local LLM Port & Timeout")
+        print("  [7] Test Service Connectivity (Health Probe)")
         print("  [0] Back / Exit")
         print()
 
-        choice = input(BOLD + CYAN + "Select an option [0-8]: " + RESET).strip()
+        choice = input(BOLD + CYAN + "Select an option [0-7]: " + RESET).strip()
 
         if choice == "0":
             break
@@ -156,15 +155,12 @@ def main():
             val = input("Enter Gemini API Key (or empty to clear): ").strip()
             update_setting("GEMINI_API_KEY", val, "backend")
         elif choice == "3":
-            val = input("Enter Groq API Key (or empty to clear): ").strip()
-            update_setting("GROQ_API_KEY", val, "backend")
-        elif choice == "4":
             val = input("Enter Grok API Key (or empty to clear): ").strip()
-            update_setting("GROQ_API_KEY", val, "backend")
-        elif choice == "5":
+            update_setting("GROK_API_KEY", val, "backend")
+        elif choice == "4":
             val = input("Enter OpenRouter API Key (or empty to clear): ").strip()
             update_setting("OPENROUTER_API_KEY", val, "backend")
-        elif choice == "6":
+        elif choice == "5":
             print("\nAvailable models (or enter custom HuggingFace identifier):")
             print("  1. Qwen/Qwen2.5-0.5B-Instruct (Default, fast & lightweight)")
             print("  2. TinyLlama/TinyLlama-1.1B-Chat-v1.0")
@@ -178,11 +174,15 @@ def main():
             chosen_model = m_map.get(m_choice, m_choice)
             if chosen_model:
                 update_setting("LOCAL_MODEL_NAME", chosen_model, "laptop")
+        elif choice == "6":
+            port_val = input("Enter laptop port [default 6036]: ").strip()
+            if port_val:
+                update_setting("PORT", port_val, "laptop")
+                update_setting("LAPTOP_API_URL", f"http://localhost:{port_val}", "backend")
+            to_val = input("Enter timeout in seconds (e.g. 25.0): ").strip()
+            if to_val:
+                update_setting("LOCAL_LLM_TIMEOUT", to_val, "backend")
         elif choice == "7":
-            val = input("Enter timeout in seconds (e.g. 25.0): ").strip()
-            if val:
-                update_setting("LOCAL_LLM_TIMEOUT", val, "backend")
-        elif choice == "8":
             test_services()
 
         input(DIM + "\nPress Enter to continue..." + RESET)
