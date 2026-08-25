@@ -3,6 +3,8 @@ services:
     name: hybrid-github-rag-backend
     runtime: python
     plan: free
+    region: oregon
+    autoDeploy: true
     buildCommand: pip install -r backend/requirements.txt
     startCommand: uvicorn backend.app.main:app --host 0.0.0.0 --port $PORT
     envVars:
@@ -11,7 +13,7 @@ services:
       - key: GITHUB_REPO_URL
         value: https://github.com/tiangolo/fastapi
       - key: LAPTOP_API_URL
-        sync: false
+        value: http://localhost:6036
       - key: LAPTOP_API_TOKEN
         value: secret-laptop-token
       - key: LOCAL_LLM_TIMEOUT
