@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>GitHub README Hybrid RAG Chatbot</title>
+  <meta name="description" content="AI Assistant grounded strictly in GitHub repository READMEs with Local Transformer LLM priority and Multi-Provider Cloud failover (Gemini, Grok, OpenRouter, Groq).">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+  <!-- Highlight.js for code syntax highlighting -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/atom-one-dark.min.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+  <!-- Marked.js for markdown rendering -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/marked/12.0.0/marked.min.js"></script>
+</head>
+<body>
+  <div class="app-layout">
+    <!-- TOP NAVIGATION BAR -->
+    <header class="navbar glass-panel">
+      <div class="nav-left">
+        <div class="brand-badge">
+          <div class="logo-icon">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M9 19c-5 1.5-5-2.5-7-3m14 6v-3.87a3.37 3.37 0 0 0-.94-2.61c3.14-.35 6.44-1.54 6.44-7A5.44 5.44 0 0 0 20 4.77 5.07 5.07 0 0 0 19.91 1S18.73.65 16 2.48a13.38 13.38 0 0 0-7 0C6.27.65 5.09 1 5.09 1A5.07 5.07 0 0 0 5 4.77a5.44 5.44 0 0 0-1.5 3.78c0 5.42 3.3 6.61 6.44 7A3.37 3.37 0 0 0 9 18.13V22"></path>
+            </svg>
+          </div>
+          <div class="brand-text">
+            <h1>GitHub README RAG</h1>
+            <span class="badge-hybrid">Multi-Provider Cascade</span>
+          </div>
+        </div>
+
+        <div class="repo-info-chip" id="repo-chip">
+          <svg class="chip-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path>
+            <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path>
+          </svg>
+          <span class="repo-name" id="current-repo-display">Loading repo...</span>
+          <span class="repo-branch" id="current-branch-display">main</span>
+        </div>
+      </div>
+
+      <div class="nav-right">
+        <!-- Provider Health Status Indicator -->
+        <div class="status-indicator-group">
+          <div class="status-pill" id="laptop-status-pill" title="Local Laptop LLM Server Status">
+            <span class="pulse-dot local-dot" id="laptop-dot"></span>
+            <span class="status-text" id="laptop-status-text">Checking Local LLM...</span>
+          </div>
+          <div class="status-pill" id="readme-status-pill" title="README Indexing Status">
+            <span class="pulse-dot sync-dot" id="sync-dot"></span>
+            <span class="status-text" id="sync-status-text">README Pending</span>
+          </div>
+        </div>
+
+        <!-- Sync Button -->
+        <button id="btn-sync-readme" class="btn-secondary" title="Re-sync README from GitHub">
+          <svg class="sync-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"></path>
+          </svg>
+          <span>Sync README</span>
+        </button>
+
+        <!-- Settings / Config Drawer Toggle -->
+        <button id="btn-open-settings" class="btn-icon" title="Configure GitHub Repository & Fallback Providers">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="12" cy="12" r="3"></circle>
+            <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
+          </svg>
+        </button>
+      </div>
+    </header>
+
+    <!-- MAIN CHAT AREA -->
+    <main class="chat-viewport">
+      <div class="chat-container" id="chat-messages-list">
+        <!-- WELCOME HERO CARD -->
+        <div class="welcome-card glass-panel" id="welcome-hero">
+          <div class="welcome-badge">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"></path>
+            </svg>
+          </div>
+          <h2>Repository README Knowledge Base</h2>
+          <p>
+            Ask anything about the configured GitHub repository. Grounded strictly in <code id="welcome-file-name">README.md</code>, processed by your <strong>Local Laptop LLM</strong> with 24/7 cascading failover across <strong>Gemini</strong>, <strong>xAI Grok</strong>, <strong>OpenRouter</strong>, and <strong>Groq</strong>.
+          </p>
+
+          <div class="prompt-suggestions">
+            <button class="suggestion-chip" data-prompt="How do I install this project?">
+              📦 Installation Instructions
+            </button>
+            <button class="suggestion-chip" data-prompt="How do I configure and run this project?">
+              ⚡ Configuration & Usage
+            </button>
+            <button class="suggestion-chip" data-prompt="What are the key features of this repository?">
+              🌟 Project Overview
+            </button>
+            <button class="suggestion-chip" data-prompt="What environment variables or prerequisites are needed?">
+              🔧 Environment & Prerequisites
+            </button>
+          </div>
+        </div>
+      </div>
+    </main>
+
+    <!-- BOTTOM INPUT BAR -->
+    <footer class="chat-footer glass-panel">
+      <form id="chat-form" class="chat-form">
+        <div class="input-wrapper">
+          <textarea
+            id="user-input"
+            placeholder="Ask a question about the repository README... (Shift+Enter for newline)"
+            rows="1"
+            required
+          ></textarea>
+        </div>
+        <button type="submit" id="btn-send" class="btn-primary" title="Send message">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <line x1="22" y1="2" x2="11" y2="13"></line>
+            <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
+          </svg>
+          <span>Send</span>
+        </button>
+      </form>
+      <div class="footer-meta">
+        <span>Knowledge source: <strong>GitHub README.md</strong></span>
+        <span class="divider">•</span>
+        <span>Cascade: <strong>Local Laptop</strong> ➔ <strong>Gemini</strong> ➔ <strong>Grok</strong> ➔ <strong>OpenRouter</strong> ➔ <strong>Groq</strong></span>
+      </div>
+    </footer>
+  </div>
+
+  <!-- CONFIGURATION DRAWER / MODAL -->
+  <div class="modal-backdrop" id="settings-modal">
+    <div class="settings-drawer glass-panel">
+      <div class="drawer-header">
+        <h3>Repository & Cascade Settings</h3>
+        <button id="btn-close-settings" class="btn-icon">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <line x1="18" y1="6" x2="6" y2="18"></line>
+            <line x1="6" y1="6" x2="18" y2="18"></line>
+          </svg>
+        </button>
+      </div>
+
+      <form id="repo-settings-form" class="drawer-body">
+        <div class="form-group">
+          <label for="input-repo-url">GitHub Repository URL</label>
+          <input
+            type="text"
+            id="input-repo-url"
+            placeholder="https://github.com/tiangolo/fastapi"
+            required
+          >
+          <span class="form-hint">Supports HTTPS, SSH, or owner/repo format.</span>
+        </div>
+
+        <div class="form-group">
+          <label for="input-repo-branch">Branch (Optional)</label>
+          <input
+            type="text"
+            id="input-repo-branch"
+            placeholder="Leave empty for default branch (main/master)"
+          >
+        </div>
+
+        <div class="form-group">
+          <label for="input-repo-token">GitHub Token (Optional)</label>
+          <input
+            type="password"
+            id="input-repo-token"
+            placeholder="ghp_... for private repos / higher limits"
+          >
+        </div>
+
+        <div class="drawer-stats" id="sync-stats-box">
+          <div class="stat-row">
+            <span class="stat-label">Current SHA:</span>
+            <code class="stat-value" id="modal-sha">None</code>
+          </div>
+          <div class="stat-row">
+            <span class="stat-label">Indexed Chunks:</span>
+            <span class="stat-value" id="modal-chunks">0</span>
+          </div>
+          <div class="stat-row">
+            <span class="stat-label">Last Synced:</span>
+            <span class="stat-value" id="modal-timestamp">-</span>
+          </div>
+        </div>
+
+        <div class="drawer-actions">
+          <button type="submit" class="btn-primary w-full" id="btn-save-and-sync">
+            Save & Sync Repository
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>

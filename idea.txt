@@ -1,0 +1,1064 @@
+# Build a Hybrid GitHub README RAG Chatbot
+
+Build a hybrid RAG chatbot whose knowledge source is a **GitHub repository README.md**, NOT uploaded PDFs or arbitrary documents.
+
+The system must use:
+
+1. A GitHub repository's `README.md` as the knowledge base.
+2. My laptop/local transformer model as the preferred LLM.
+3. Gemini API running through the Render backend as the fallback LLM.
+4. Automatic failover between laptop and Gemini.
+
+---
+
+# 1. Core architecture
+
+The architecture must be:
+
+```text
+                    USER
+                      │
+                      ▼
+              ┌───────────────┐
+              │   Frontend    │
+              └───────┬───────┘
+                      │
+                      ▼
+              ┌───────────────┐
+              │ Render Backend│
+              │    FastAPI    │
+              └───────┬───────┘
+                      │
+                      ▼
+              ┌───────────────┐
+              │ GitHub README │
+              │      RAG      │
+              └───────┬───────┘
+                      │
+                Retrieved context
+                      │
+                      ▼
+              ┌───────────────┐
+              │ Try Local LLM │
+              └───────┬───────┘
+                      │
+               ┌──────┴────────────┐
+               │                   │
+             ONLINE             OFFLINE
+               │                   │
+               ▼                   ▼
+Laptop LLM(transformers model)    Gemini
+               │                   │
+               └────────┬──────────┘
+                        ▼   
+                     Answer
+```
+
+The laptop must always be the preferred LLM.
+
+Gemini must only be used when the laptop is unavailable, times out, errors, or returns an invalid response.
+
+---
+
+# 2. Knowledge source MUST be GitHub README.md
+
+Do NOT build a PDF upload system.
+
+Do NOT require users to upload documents.
+
+The primary knowledge source is:
+
+```text
+GitHub repository
+       ↓
+README.md
+       ↓
+Markdown parser
+       ↓
+Chunking
+       ↓
+Embeddings
+       ↓
+Vector store
+       ↓
+RAG retrieval
+```
+
+The user should configure a repository such as:
+
+```text
+https://github.com/OWNER/REPOSITORY
+```
+
+The application should automatically obtain:
+
+```text
+README.md
+```
+
+from that repository.
+
+GitHub provides a repository README API and supports retrieving the README content directly. Public repositories can be accessed without authentication, while private repositories require appropriate repository read permissions.
+
+Use the official GitHub API rather than scraping the GitHub HTML page.
+
+---
+
+# 3. GitHub configuration
+
+Add these environment variables:
+
+```text
+GITHUB_REPO_URL=
+GITHUB_BRANCH=
+GITHUB_TOKEN=
+```
+
+Example:
+
+```text
+GITHUB_REPO_URL=https://github.com/example/my-project
+GITHUB_BRANCH=main
+GITHUB_TOKEN=
+```
+
+`GITHUB_TOKEN` should be optional.
+
+For public repositories:
+
+```text
+GITHUB_TOKEN=
+```
+
+should work.
+
+For private repositories, support a GitHub token with read access to repository contents.
+
+Never expose the GitHub token to the frontend.
+
+---
+
+# 4. GitHub README ingestion
+
+Create a dedicated GitHub README loader.
+
+For example:
+
+```text
+backend/app/github/
+    __init__.py
+    client.py
+    readme_loader.py
+    parser.py
+```
+
+Implement something conceptually like:
+
+```python
+class GitHubReadmeLoader:
+
+    async def fetch_readme(self, repo_url, branch=None):
+        ...
+
+    async def get_readme_content(self):
+        ...
+
+    async def get_readme_sha(self):
+        ...
+```
+
+The loader should:
+
+1. Parse owner and repository from the GitHub URL.
+2. Determine the branch.
+3. Fetch README from GitHub.
+4. Decode the content if necessary.
+5. Return raw Markdown.
+6. Record the README SHA/version.
+7. Handle GitHub API errors gracefully.
+
+Do not assume the README is always on `main`.
+
+Support:
+
+```text
+main
+master
+custom branch
+```
+
+If `GITHUB_BRANCH` is empty, use the repository's default branch.
+
+---
+
+# 5. README should be the ONLY RAG knowledge source
+
+The chatbot should answer questions using the contents of the configured README.
+
+Example:
+
+README:
+
+```markdown
+# My Project
+
+## Installation
+
+Run:
+
+pip install myproject
+
+## Configuration
+
+Set the API_KEY environment variable.
+
+## Usage
+
+Run:
+
+python app.py
+```
+
+User:
+
+```text
+How do I install this project?
+```
+
+The system retrieves the relevant README chunks and generates:
+
+```text
+You can install the project with:
+
+pip install myproject
+```
+
+The LLM should NOT invent information that is not supported by the README.
+
+---
+
+# 6. Grounded-answer behavior
+
+Use a strict RAG system prompt.
+
+The LLM should follow these rules:
+
+```text
+You are a GitHub README assistant.
+
+Answer the user's question using ONLY the supplied README context.
+
+Do not invent information.
+
+If the answer cannot be found in the README context, say:
+
+"I couldn't find that information in the repository README."
+
+Do not pretend that information exists in the README when it does not.
+
+When useful, mention the relevant README section.
+```
+
+Apply this behavior to BOTH:
+
+```text
+Local LLM
+Gemini
+```
+
+The local model and Gemini must receive the same retrieved context and grounding instructions.
+
+---
+
+# 7. README-aware chunking
+
+Do not blindly split the README every N characters.
+
+Preserve Markdown structure.
+
+Prefer chunks based on headings:
+
+```text
+# Project
+## Installation
+## Configuration
+## Usage
+## API
+## Examples
+## Troubleshooting
+```
+
+Each chunk should retain metadata such as:
+
+```json
+{
+  "source": "github",
+  "repository": "OWNER/REPOSITORY",
+  "file": "README.md",
+  "section": "Installation",
+  "heading_level": 2,
+  "branch": "main"
+}
+```
+
+This allows the response to identify where the answer came from.
+
+---
+
+# 8. Handle code blocks correctly
+
+README files often contain code examples.
+
+Do NOT destroy code blocks during Markdown processing.
+
+For example:
+
+````markdown
+## Installation
+
+```bash
+pip install example
+````
+
+````
+
+The RAG chunk should preserve:
+
+```bash
+pip install example
+````
+
+The chatbot should be able to answer questions about:
+
+* installation commands
+* configuration
+* environment variables
+* CLI commands
+* API examples
+* code snippets
+* usage instructions
+* project features
+* troubleshooting
+
+---
+
+# 9. README synchronization
+
+The system must support refreshing the README when the GitHub repository changes.
+
+Do not fetch and re-embed the README for every user question.
+
+Instead:
+
+```text
+GitHub README
+      ↓
+Check SHA/version
+      ↓
+Changed?
+   ┌──┴──┐
+  YES    NO
+   │      │
+   ▼      ▼
+Re-index  Use existing
+          embeddings
+```
+
+Store the README SHA.
+
+For example:
+
+```text
+github_readme_sha
+```
+
+If the SHA hasn't changed:
+
+```text
+Do NOT re-embed.
+```
+
+If the SHA changes:
+
+```text
+Fetch new README
+      ↓
+Delete old README vectors
+      ↓
+Chunk new README
+      ↓
+Generate embeddings
+      ↓
+Store new vectors
+```
+
+Add an endpoint:
+
+```text
+POST /api/github/sync
+```
+
+which manually triggers synchronization.
+
+Also make the sync architecture ready for scheduled synchronization later.
+
+---
+
+# 10. RAG pipeline
+
+Use:
+
+```text
+GitHub README
+      ↓
+Markdown parsing
+      ↓
+Heading-aware chunking
+      ↓
+Embedding model
+      ↓
+Vector database
+```
+
+At query time:
+
+```text
+User question
+      ↓
+Query embedding
+      ↓
+Vector similarity search
+      ↓
+Top-K README chunks
+      ↓
+Optional reranking
+      ↓
+Context
+      ↓
+LLM
+```
+
+Keep the RAG layer independent from the LLM provider.
+
+---
+
+# 11. Vector database
+
+Use a free-friendly vector database.
+
+Prefer:
+
+```text
+PostgreSQL + pgvector
+```
+
+if PostgreSQL is available.
+
+Otherwise make the vector store modular.
+
+Create:
+
+```text
+backend/app/rag/
+    embeddings.py
+    chunker.py
+    retriever.py
+    vector_store.py
+    pipeline.py
+```
+
+The vector store should contain only the configured GitHub README knowledge.
+
+---
+
+# 12. Local laptop LLM
+
+The laptop runs the transformer/generative model.
+
+Create a separate FastAPI application:
+
+```text
+laptop/
+    app/
+        main.py
+        model.py
+        auth.py
+        config.py
+```
+
+Run:
+
+```text
+http://localhost:8000
+```
+
+Endpoints:
+
+```text
+GET /health
+POST /generate
+```
+
+`POST /generate`:
+
+```json
+{
+  "question": "How do I install this project?",
+  "context": [
+    {
+      "text": "README chunk...",
+      "section": "Installation"
+    }
+  ],
+  "conversation": []
+}
+```
+
+Response:
+
+```json
+{
+  "answer": "Run pip install myproject.",
+  "model": "local-model"
+}
+```
+
+---
+
+# 13. Laptop has priority
+
+The Render backend must use this order:
+
+```text
+1. Retrieve README context
+2. Try laptop
+3. If laptop succeeds → return laptop answer
+4. If laptop fails → Gemini
+5. Return answer
+```
+
+Use a short timeout:
+
+```text
+LOCAL_LLM_TIMEOUT=4
+```
+
+Do not let an offline laptop make the chatbot wait indefinitely.
+
+---
+
+# 14. Laptop OFF behavior
+
+When laptop is ON:
+
+```text
+User
+ ↓
+Render
+ ↓
+README RAG
+ ↓
+Laptop
+ ↓
+Answer
+```
+
+When laptop is OFF:
+
+```text
+User
+ ↓
+Render
+ ↓
+README RAG
+ ↓
+Laptop timeout
+ ↓
+Gemini
+ ↓
+Answer
+```
+
+The user should not notice a major difference except the provider indicator.
+
+---
+
+# 15. Cloudflare Tunnel
+
+I do NOT want to purchase a domain for development.
+
+Use Cloudflare Quick Tunnel:
+
+```bash
+cloudflared tunnel --url http://localhost:8000
+```
+
+This should expose the laptop through a temporary:
+
+```text
+https://xxxxx.trycloudflare.com
+```
+
+URL.
+
+Configure:
+
+```text
+LAPTOP_API_URL=
+```
+
+Do not require purchasing a domain.
+
+Make the architecture modular so a permanent Cloudflare Tunnel/domain can be added later.
+
+---
+
+# 16. Laptop authentication
+
+The public tunnel must not expose an unrestricted LLM endpoint.
+
+Use:
+
+```text
+LAPTOP_API_TOKEN=
+```
+
+Render sends:
+
+```text
+Authorization: Bearer <token>
+```
+
+The laptop validates the token.
+
+Never hardcode it.
+
+---
+
+# 17. Gemini fallback
+
+Create:
+
+```text
+backend/app/providers/
+    base.py
+    local.py
+    gemini.py
+```
+
+Use:
+
+```text
+GEMINI_API_KEY=
+GEMINI_MODEL=
+```
+
+Gemini must receive:
+
+```text
+system instructions
++
+user question
++
+retrieved README context
+```
+
+Gemini must NOT answer from general knowledge when the question is intended to be about the repository.
+
+If the README doesn't contain the answer, respond accordingly.
+
+---
+
+# 18. Source citations in chatbot response
+
+The RAG response should expose the README section used.
+
+Example response:
+
+```text
+You can install the project using:
+
+pip install myproject
+
+Source: README.md → Installation
+```
+
+Return structured sources:
+
+```json
+{
+  "answer": "...",
+  "provider": "local",
+  "sources": [
+    {
+      "file": "README.md",
+      "section": "Installation"
+    }
+  ]
+}
+```
+
+The frontend should display these sources underneath the answer.
+
+---
+
+# 19. GitHub repository URL in UI
+
+Provide a configuration screen or environment-based configuration for:
+
+```text
+GitHub Repository URL
+```
+
+Example:
+
+```text
+https://github.com/OWNER/REPOSITORY
+```
+
+Show:
+
+```text
+Repository: OWNER/REPOSITORY
+README: synced
+Branch: main
+Last synced: ...
+```
+
+Also provide:
+
+```text
+Sync README
+```
+
+button.
+
+---
+
+# 20. Chat UI
+
+Create a clean chatbot interface.
+
+Display:
+
+```text
+Repository: OWNER/REPOSITORY
+Status: README synced
+```
+
+For every response:
+
+```text
+● Local
+```
+
+or:
+
+```text
+● Gemini fallback
+```
+
+And:
+
+```text
+Sources:
+README.md → Installation
+README.md → Configuration
+```
+
+---
+
+# 21. API endpoints
+
+Implement:
+
+```text
+GET  /api/health
+
+GET  /api/laptop-status
+
+POST /api/chat
+
+POST /api/github/sync
+
+GET  /api/github/status
+```
+
+`GET /api/github/status` should return something like:
+
+```json
+{
+  "repository": "OWNER/REPOSITORY",
+  "branch": "main",
+  "file": "README.md",
+  "sha": "...",
+  "status": "synced"
+}
+```
+
+---
+
+# 22. Configuration
+
+Render:
+
+```text
+GITHUB_REPO_URL=
+GITHUB_BRANCH=
+GITHUB_TOKEN=
+
+GEMINI_API_KEY=
+GEMINI_MODEL=
+
+LAPTOP_API_URL=
+LAPTOP_API_TOKEN=
+
+LOCAL_LLM_TIMEOUT=4
+```
+
+Laptop:
+
+```text
+LOCAL_MODEL_NAME=
+LAPTOP_API_TOKEN=
+PORT=8000
+```
+
+Never commit `.env`.
+
+---
+
+# 23. Do NOT implement
+
+Do NOT implement:
+
+* PDF upload
+* DOCX upload
+* arbitrary document upload
+* document management UI
+* local document folder ingestion
+* multiple unrelated knowledge bases
+
+The primary and initial knowledge source is:
+
+```text
+ONE CONFIGURED GITHUB REPOSITORY
+        ↓
+README.md
+```
+
+Design the code so additional GitHub files can be supported later, but do not implement that unless necessary.
+
+---
+
+# 24. Recommended project structure
+
+```text
+hybrid-github-rag/
+│
+├── backend/
+│   ├── app/
+│   │   ├── main.py
+│   │   ├── config.py
+│   │   │
+│   │   ├── api/
+│   │   │   ├── chat.py
+│   │   │   ├── github.py
+│   │   │   └── health.py
+│   │   │
+│   │   ├── github/
+│   │   │   ├── client.py
+│   │   │   ├── readme_loader.py
+│   │   │   └── sync.py
+│   │   │
+│   │   ├── rag/
+│   │   │   ├── chunker.py
+│   │   │   ├── embeddings.py
+│   │   │   ├── retriever.py
+│   │   │   ├── vector_store.py
+│   │   │   └── pipeline.py
+│   │   │
+│   │   ├── providers/
+│   │   │   ├── base.py
+│   │   │   ├── local.py
+│   │   │   └── gemini.py
+│   │   │
+│   │   └── services/
+│   │       ├── orchestrator.py
+│   │       └── laptop_health.py
+│   │
+│   ├── requirements.txt
+│   └── .env.example
+│
+├── laptop/
+│   ├── app/
+│   │   ├── main.py
+│   │   ├── model.py
+│   │   ├── auth.py
+│   │   └── config.py
+│   ├── requirements.txt
+│   └── .env.example
+│
+├── frontend/
+│   └── ...
+│
+├── README.md
+├── .gitignore
+└── docker-compose.yml
+```
+
+---
+
+# 25. Testing
+
+Create tests for:
+
+### GitHub
+
+1. Public repository README fetch
+2. Private repository with token
+3. Invalid repository URL
+4. README not found
+5. Branch selection
+6. README SHA detection
+7. README unchanged → no re-index
+8. README changed → re-index
+
+### RAG
+
+9. README chunking
+10. Markdown headings preserved
+11. Code blocks preserved
+12. Relevant chunk retrieval
+13. No relevant chunk found
+
+### Local LLM
+
+14. Laptop available → local answer
+15. Laptop unavailable → Gemini
+16. Laptop timeout → Gemini
+17. Laptop HTTP 500 → Gemini
+18. Invalid laptop response → Gemini
+19. Invalid laptop token → reject
+
+### Gemini
+
+20. Gemini success
+21. Gemini failure
+
+### Chat
+
+22. Correct provider metadata
+23. Correct README source metadata
+24. Answer grounded in README
+
+---
+
+# 26. Important grounding test
+
+Create a test README:
+
+```markdown
+# Test Project
+
+## Installation
+
+Run:
+
+pip install test-project
+
+## Configuration
+
+Set:
+
+API_KEY=abc123
+
+## Usage
+
+Run:
+
+python app.py
+```
+
+Then verify:
+
+Question:
+
+```text
+How do I install the project?
+```
+
+Expected answer should mention:
+
+```text
+pip install test-project
+```
+
+Question:
+
+```text
+What database does the project use?
+```
+
+If the README does not mention a database, expected answer:
+
+```text
+I couldn't find that information in the repository README.
+```
+
+Do NOT allow the model to hallucinate a database.
+
+---
+
+# 27. Final product behavior
+
+The completed system should behave like this:
+
+```text
+             GitHub Repository
+                    │
+                    ▼
+                README.md
+                    │
+                    ▼
+              README RAG
+                    │
+                    ▼
+              User Question
+                    │
+                    ▼
+             Render FastAPI
+                    │
+                    ▼
+              Try Laptop LLM
+                 /       \
+              YES         NO
+               │           │
+               ▼           ▼
+           Local LLM     Gemini
+               │           │
+               └─────┬─────┘
+                     ▼
+                  Answer
+                     │
+                     ▼
+          README source sections
+```
+
+The most important requirement is:
+
+**The chatbot is a GitHub README assistant, not a generic document chatbot.**
+
+It should answer questions about the configured repository based primarily on `README.md`, while using the laptop LLM whenever available and Gemini as the automatic fallback.
+
+Before implementation, inspect the existing repository/project files and adapt the implementation rather than unnecessarily replacing existing code.
+
+After implementation, run the tests and demonstrate the following three flows:
+
+```text
+1. Laptop ON  → README RAG → Local LLM → Answer
+
+2. Laptop OFF → README RAG → Gemini → Answer
+
+3. README changed on GitHub → Sync → Re-index → New answer
+```

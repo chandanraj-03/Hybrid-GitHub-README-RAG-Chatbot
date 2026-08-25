@@ -1,0 +1,39 @@
+services:
+  - type: web
+    name: hybrid-github-rag-backend
+    runtime: python
+    buildCommand: pip install -r backend/requirements.txt
+    startCommand: uvicorn backend.app.main:app --host 0.0.0.0 --port $PORT
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.11.9
+      - key: GITHUB_REPO_URL
+        value: https://github.com/tiangolo/fastapi
+      - key: LAPTOP_API_URL
+        sync: false
+      - key: LAPTOP_API_TOKEN
+        value: secret-laptop-token
+      - key: LOCAL_LLM_TIMEOUT
+        value: "25.0"
+      - key: GEMINI_API_KEY
+        sync: false
+      - key: GEMINI_MODEL
+        value: gemini-1.5-flash
+      - key: GROK_API_KEY
+        sync: false
+      - key: GROK_MODEL
+        value: grok-2-latest
+      - key: OPENROUTER_API_KEY
+        sync: false
+      - key: OPENROUTER_MODEL
+        value: meta-llama/llama-3.3-70b-instruct
+      - key: GROQ_API_KEY
+        sync: false
+      - key: GROQ_MODEL
+        value: llama-3.3-70b-versatile
+      - key: FALLBACK_CASCADE_ORDER
+        value: local,gemini,grok,openrouter,groq
+      - key: TOP_K_CHUNKS
+        value: "4"
+      - key: EMBEDDING_PROVIDER
+        value: sentence_transformers

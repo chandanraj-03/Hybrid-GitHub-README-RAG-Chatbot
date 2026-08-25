@@ -1,0 +1,8 @@
+{
+  "name": "hybrid-github-rag-frontend",
+  "version": "1.0.0",
+  "description": "Modern UI for Hybrid GitHub README RAG Chatbot",
+  "scripts": {
+    "dev": "npx serve -l 3000 ."
+  }
+}

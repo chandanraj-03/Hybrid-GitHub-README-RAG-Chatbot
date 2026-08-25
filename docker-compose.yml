@@ -1,0 +1,28 @@
+version: '3.8'
+
+services:
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    ports:
+      - "8080:8080"
+    environment:
+      - GITHUB_REPO_URL=https://github.com/tiangolo/fastapi
+      - GITHUB_BRANCH=main
+      - GITHUB_TOKEN=
+      - GEMINI_API_KEY=${GEMINI_API_KEY}
+      - GEMINI_MODEL=gemini-1.5-flash
+      - LAPTOP_API_URL=http://host.docker.internal:8000
+      - LAPTOP_API_TOKEN=secret-laptop-token
+      - LOCAL_LLM_TIMEOUT=4.0
+    restart: unless-stopped
+
+  frontend:
+    image: nginx:alpine
+    ports:
+      - "3000:80"
+    volumes:
+      - ./frontend:/usr/share/nginx/html:ro
+    depends_on:
+      - backend
