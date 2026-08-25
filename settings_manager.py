@@ -2,7 +2,7 @@
 Hybrid GitHub README RAG - Settings Manager
 ===========================================
 Interactive console utility to view and configure environment settings
-for backend/.env and laptop/.env.
+for backend/.env and laptop/.env, with instant live sync to Render.
 """
 
 import os
@@ -89,6 +89,9 @@ def display_current_settings():
     print(f"   • Grok API Key   : {'Configured ✓' if b_cfg.get('GROK_API_KEY') else 'Not set (Optional)'}")
     print(f"   • OpenRouter Key : {'Configured ✓' if b_cfg.get('OPENROUTER_API_KEY') else 'Not set (Optional)'}")
     print(f"   • Cascade Order  : {b_cfg.get('FALLBACK_CASCADE_ORDER', 'local,gemini,grok,openrouter')}")
+    print()
+    print(BOLD + "4. Remote Render Deployment:" + RESET)
+    print(f"   • Render App URL : {b_cfg.get('RENDER_BACKEND_URL', 'Not configured (e.g. https://xxx.onrender.com)')}")
     print(CYAN + "=" * 65 + RESET + "\n")
 
 
@@ -100,9 +103,58 @@ def update_setting(key, value, target="backend"):
     print(GREEN + f"[✓] Updated {key} = '{value}'" + RESET)
 
 
+def sync_to_render():
+    b_cfg = load_env_dict(BACKEND_ENV_PATH)
+    render_url = b_cfg.get("RENDER_BACKEND_URL", "").strip().rstrip("/")
+
+    if not render_url:
+        print(YELLOW + "\n[!] RENDER_BACKEND_URL is not set." + RESET)
+        render_url = input("Enter your Render Backend URL (e.g. https://hybrid-github-rag-backend.onrender.com): ").strip().rstrip("/")
+        if not render_url:
+            print(RED + "[✗] Sync cancelled." + RESET)
+            return
+        update_setting("RENDER_BACKEND_URL", render_url, "backend")
+
+    token = b_cfg.get("LAPTOP_API_TOKEN", "secret-laptop-token")
+    endpoint = f"{render_url}/api/admin/config"
+    headers = {
+        "Authorization": f"Bearer {token}",
+        "Content-Type": "application/json",
+    }
+
+    payload = {
+        "gemini_api_key": b_cfg.get("GEMINI_API_KEY", ""),
+        "grok_api_key": b_cfg.get("GROK_API_KEY", ""),
+        "openrouter_api_key": b_cfg.get("OPENROUTER_API_KEY", ""),
+        "github_repo_url": b_cfg.get("GITHUB_REPO_URL", ""),
+        "local_llm_timeout": float(b_cfg.get("LOCAL_LLM_TIMEOUT", 25.0)),
+        "fallback_cascade_order": b_cfg.get("FALLBACK_CASCADE_ORDER", "local,gemini,grok,openrouter"),
+    }
+
+    print(CYAN + f"\n[*] Sending live configuration sync to {render_url}..." + RESET)
+    try:
+        r = requests.post(endpoint, json=payload, headers=headers, timeout=12.0)
+        if r.status_code == 200:
+            data = r.json()
+            print(GREEN + "\n" + "=" * 65 + RESET)
+            print(BOLD + GREEN + "  [✓] SUCCESS: Render Backend updated instantly!" + RESET)
+            print(GREEN + f"      Updated fields: {', '.join(data.get('updated_fields', []))}" + RESET)
+            print(GREEN + "      Zero downtime - Render in-memory settings are live!" + RESET)
+            print(GREEN + "=" * 65 + "\n" + RESET)
+        elif r.status_code == 401:
+            print(RED + f"[✗] Unauthorized: Check that LAPTOP_API_TOKEN matches between local and Render." + RESET)
+        else:
+            print(RED + f"[✗] Render sync failed (HTTP {r.status_code}): {r.text}" + RESET)
+    except Exception as exc:
+        print(RED + f"[✗] Could not connect to Render at {render_url}: {exc}" + RESET)
+
+
 def test_services():
+    b_cfg = load_env_dict(BACKEND_ENV_PATH)
     l_cfg = load_env_dict(LAPTOP_ENV_PATH)
     laptop_port = l_cfg.get("PORT", "6036")
+    render_url = b_cfg.get("RENDER_BACKEND_URL", "").strip().rstrip("/")
+
     print(CYAN + "\n[*] Testing service health..." + RESET)
     # 1. Laptop server
     try:
@@ -115,16 +167,28 @@ def test_services():
     except Exception:
         print(RED + f"[✗] Laptop LLM Service (Port {laptop_port}): OFFLINE" + RESET)
 
-    # 2. Backend server
+    # 2. Local Backend server
     try:
         r = requests.get("http://127.0.0.1:8080/api/health", timeout=3.0)
         if r.status_code == 200:
             data = r.json()
-            print(GREEN + f"[✓] Backend Server (Port 8080): ONLINE (Indexed chunks: {data.get('indexed_chunks')})" + RESET)
+            print(GREEN + f"[✓] Local Backend Server (Port 8080): ONLINE (Indexed chunks: {data.get('indexed_chunks')})" + RESET)
         else:
-            print(YELLOW + f"[!] Backend Server returned status {r.status_code}" + RESET)
+            print(YELLOW + f"[!] Local Backend Server returned status {r.status_code}" + RESET)
     except Exception:
-        print(RED + "[✗] Backend Server (Port 8080): OFFLINE" + RESET)
+        print(RED + "[✗] Local Backend Server (Port 8080): OFFLINE" + RESET)
+
+    # 3. Remote Render Backend
+    if render_url:
+        try:
+            r = requests.get(f"{render_url}/api/health", timeout=6.0)
+            if r.status_code == 200:
+                data = r.json()
+                print(GREEN + f"[✓] Remote Render Backend ({render_url}): ONLINE (Indexed chunks: {data.get('indexed_chunks')})" + RESET)
+            else:
+                print(YELLOW + f"[!] Render Backend returned status {r.status_code}" + RESET)
+        except Exception:
+            print(RED + f"[✗] Remote Render Backend ({render_url}): OFFLINE / SLEEPING" + RESET)
     print()
 
 
@@ -137,13 +201,15 @@ def main():
         print("  [2] Set/Update Google Gemini API Key")
         print("  [3] Set/Update xAI Grok API Key")
         print("  [4] Set/Update OpenRouter API Key")
-        print("  [5] Change Local Model or Device Mode (CUDA/CPU)")
-        print("  [6] Change Local LLM Port & Timeout")
-        print("  [7] Test Service Connectivity (Health Probe)")
+        print("  [5] Set/Update Remote Render Backend URL")
+        print("  [6] Change Local Model or Device Mode (CUDA/CPU)")
+        print("  [7] Change Local LLM Port & Timeout")
+        print("  [8] Test Service Connectivity (Health Probe)")
+        print(BOLD + GREEN + "  [S] Sync All API Keys & Settings to Render Backend Now" + RESET)
         print("  [0] Back / Exit")
         print()
 
-        choice = input(BOLD + CYAN + "Select an option [0-7]: " + RESET).strip()
+        choice = input(BOLD + CYAN + "Select an option: " + RESET).strip().lower()
 
         if choice == "0":
             break
@@ -161,6 +227,10 @@ def main():
             val = input("Enter OpenRouter API Key (or empty to clear): ").strip()
             update_setting("OPENROUTER_API_KEY", val, "backend")
         elif choice == "5":
+            val = input("Enter Render Backend URL (e.g. https://xxx.onrender.com): ").strip()
+            if val:
+                update_setting("RENDER_BACKEND_URL", val, "backend")
+        elif choice == "6":
             print("\nAvailable models (or enter custom HuggingFace identifier):")
             print("  1. Qwen/Qwen2.5-0.5B-Instruct (Default, fast & lightweight)")
             print("  2. TinyLlama/TinyLlama-1.1B-Chat-v1.0")
@@ -174,7 +244,7 @@ def main():
             chosen_model = m_map.get(m_choice, m_choice)
             if chosen_model:
                 update_setting("LOCAL_MODEL_NAME", chosen_model, "laptop")
-        elif choice == "6":
+        elif choice == "7":
             port_val = input("Enter laptop port [default 6036]: ").strip()
             if port_val:
                 update_setting("PORT", port_val, "laptop")
@@ -182,8 +252,10 @@ def main():
             to_val = input("Enter timeout in seconds (e.g. 25.0): ").strip()
             if to_val:
                 update_setting("LOCAL_LLM_TIMEOUT", to_val, "backend")
-        elif choice == "7":
+        elif choice == "8":
             test_services()
+        elif choice == "s":
+            sync_to_render()
 
         input(DIM + "\nPress Enter to continue..." + RESET)
 

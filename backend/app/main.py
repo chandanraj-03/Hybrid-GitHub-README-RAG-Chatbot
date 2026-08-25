@@ -24,6 +24,7 @@ from backend.app.services.orchestrator import RagOrchestrator
 from backend.app.api.health import router as health_router
 from backend.app.api.github import router as github_router
 from backend.app.api.chat import router as chat_router
+from backend.app.api.admin import router as admin_router
 
 logging.basicConfig(
     level=logging.INFO,
@@ -146,6 +147,7 @@ app.add_middleware(
 app.include_router(health_router, prefix="/api")
 app.include_router(github_router, prefix="/api")
 app.include_router(chat_router, prefix="/api")
+app.include_router(admin_router, prefix="/api")
 
 
 @app.get("/")
