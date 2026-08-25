@@ -11,10 +11,13 @@ class GroqProvider(BaseLLMProvider):
     def __init__(
         self,
         api_key: Optional[str] = None,
-        model: str = "llama-3.3-70b-versatile",
+        model: str = "openai/gpt-oss-120b",
     ):
         self.api_key = api_key.strip() if api_key and api_key.strip() else None
-        self.model = model or "llama-3.3-70b-versatile"
+        clean_model = (model or "openai/gpt-oss-120b").strip()
+        if ":" in clean_model and not "/" in clean_model:
+            clean_model = clean_model.replace(":", "/")
+        self.model = clean_model
         self.base_url = "https://api.groq.com/openai/v1"
 
     def is_configured(self) -> bool:

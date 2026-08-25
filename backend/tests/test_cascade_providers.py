@@ -98,8 +98,8 @@ class TestMultiProviderCascade:
         openrouter_p.name = "openrouter"
         openrouter_p.is_configured.return_value = True
         openrouter_p.generate = AsyncMock(return_value=ProviderResponse(
-            answer="OpenRouter answer via Llama 3.3",
-            model="meta-llama/llama-3.3-70b-instruct",
+            answer="OpenRouter answer via DeepSeek",
+            model="deepseek/deepseek-chat",
             provider="openrouter",
         ))
 
@@ -110,7 +110,7 @@ class TestMultiProviderCascade:
 
         res = await orchestrator.answer_question("How do I install?")
         assert res["provider"] == "openrouter"
-        assert res["model"] == "meta-llama/llama-3.3-70b-instruct"
+        assert res["model"] == "deepseek/deepseek-chat"
         assert res["failover"] is True
         assert len(res["failover_trail"]) == 2  # gemini, grok
         assert "OpenRouter answer" in res["answer"]
@@ -121,7 +121,7 @@ class TestMultiProviderCascade:
         groq_p.is_configured.return_value = True
         groq_p.generate = AsyncMock(return_value=ProviderResponse(
             answer="Groq ultra-fast response",
-            model="llama-3.3-70b-versatile",
+            model="openai/gpt-oss-120b",
             provider="groq",
         ))
 

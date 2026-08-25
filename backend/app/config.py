@@ -70,8 +70,8 @@ class Settings(BaseSettings):
         description="Groq API key for ultra-fast free fallback inference",
     )
     GROQ_MODEL: str = Field(
-        default="llama-3.3-70b-versatile",
-        description="Groq model identifier",
+        default="openai/gpt-oss-120b",
+        description="Groq model identifier (e.g. openai/gpt-oss-120b, llama-3.3-70b-versatile)",
     )
 
     # 5. Fallback Tier 4: OpenRouter Configuration
@@ -80,8 +80,8 @@ class Settings(BaseSettings):
         description="OpenRouter API key for broad multi-model fallback",
     )
     OPENROUTER_MODEL: str = Field(
-        default="meta-llama/llama-3.3-70b-instruct",
-        description="OpenRouter model identifier",
+        default="deepseek/deepseek-chat",
+        description="OpenRouter model identifier (e.g. deepseek/deepseek-chat, meta-llama/llama-3.1-8b-instruct)",
     )
 
     # Fallback Priority Cascade Order

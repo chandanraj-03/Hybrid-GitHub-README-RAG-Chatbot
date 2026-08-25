@@ -11,10 +11,10 @@ class OpenRouterProvider(BaseLLMProvider):
     def __init__(
         self,
         api_key: Optional[str] = None,
-        model: str = "meta-llama/llama-3.3-70b-instruct",
+        model: str = "deepseek/deepseek-chat",
     ):
         self.api_key = api_key.strip() if api_key and api_key.strip() else None
-        self.model = model or "meta-llama/llama-3.3-70b-instruct"
+        self.model = model or "deepseek/deepseek-chat"
         self.base_url = "https://openrouter.ai/api/v1"
 
     def is_configured(self) -> bool:

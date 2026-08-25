@@ -25,13 +25,17 @@ services:
       - key: GROK_API_KEY
         sync: false
       - key: GROK_MODEL
-        value: grok-2-latest
+        value: grok-2
+      - key: GROQ_API_KEY
+        sync: false
+      - key: GROQ_MODEL
+        value: openai/gpt-oss-120b
       - key: OPENROUTER_API_KEY
         sync: false
       - key: OPENROUTER_MODEL
-        value: meta-llama/llama-3.3-70b-instruct
+        value: deepseek/deepseek-chat
       - key: FALLBACK_CASCADE_ORDER
-        value: local,gemini,grok,openrouter
+        value: local,groq,openrouter,gemini,grok
       - key: TOP_K_CHUNKS
         value: "4"
       - key: EMBEDDING_PROVIDER
