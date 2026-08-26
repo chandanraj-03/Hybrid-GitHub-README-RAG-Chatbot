@@ -133,9 +133,9 @@ def sync_to_render():
         "fallback_cascade_order": b_cfg.get("FALLBACK_CASCADE_ORDER", "local,gemini,groq,grok,openrouter"),
     }
 
-    print(CYAN + f"\n[*] Sending live configuration sync to {render_url}..." + RESET)
+    print(CYAN + f"\n[*] Sending live configuration sync to {render_url} (allowing up to 60s for free-tier wake up)..." + RESET)
     try:
-        r = requests.post(endpoint, json=payload, headers=headers, timeout=12.0)
+        r = requests.post(endpoint, json=payload, headers=headers, timeout=60.0)
         if r.status_code == 200:
             data = r.json()
             print(GREEN + "\n" + "=" * 65 + RESET)
@@ -183,7 +183,7 @@ def test_services():
     # 3. Remote Render Backend
     if render_url:
         try:
-            r = requests.get(f"{render_url}/api/health", timeout=6.0)
+            r = requests.get(f"{render_url}/api/health", timeout=45.0)
             if r.status_code == 200:
                 data = r.json()
                 print(GREEN + f"  [OK] Remote Render Backend ({render_url}): ONLINE (Indexed chunks: {data.get('indexed_chunks')})" + RESET)
