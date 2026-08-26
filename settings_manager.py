@@ -139,16 +139,16 @@ def sync_to_render():
         if r.status_code == 200:
             data = r.json()
             print(GREEN + "\n" + "=" * 65 + RESET)
-            print(BOLD + GREEN + "  [✓] SUCCESS: Render Backend updated instantly!" + RESET)
+            print(BOLD + GREEN + "  [OK] SUCCESS: Render Backend updated instantly!" + RESET)
             print(GREEN + f"      Updated fields: {', '.join(data.get('updated_fields', []))}" + RESET)
             print(GREEN + "      Zero downtime - Render in-memory settings are live!" + RESET)
             print(GREEN + "=" * 65 + "\n" + RESET)
         elif r.status_code == 401:
-            print(RED + f"[✗] Unauthorized: Check that LAPTOP_API_TOKEN matches between local and Render." + RESET)
+            print(RED + f"[FAIL] Unauthorized: Check that LAPTOP_API_TOKEN matches between local and Render." + RESET)
         else:
-            print(RED + f"[✗] Render sync failed (HTTP {r.status_code}): {r.text}" + RESET)
+            print(RED + f"[FAIL] Render sync failed (HTTP {r.status_code}): {r.text}" + RESET)
     except Exception as exc:
-        print(RED + f"[✗] Could not connect to Render at {render_url}: {exc}" + RESET)
+        print(RED + f"[FAIL] Could not connect to Render at {render_url}: {exc}" + RESET)
 
 
 def test_services():
@@ -163,22 +163,22 @@ def test_services():
         r = requests.get(f"http://127.0.0.1:{laptop_port}/health", timeout=3.0)
         if r.status_code == 200:
             data = r.json()
-            print(GREEN + f"[✓] Laptop LLM Service (Port {laptop_port}): ONLINE (Model: {data.get('model')})" + RESET)
+            print(GREEN + f"  [OK] Laptop LLM Service (Port {laptop_port}): ONLINE (Model: {data.get('model')})" + RESET)
         else:
-            print(YELLOW + f"[!] Laptop LLM Service returned status {r.status_code}" + RESET)
+            print(YELLOW + f"  [!] Laptop LLM Service returned status {r.status_code}" + RESET)
     except Exception:
-        print(RED + f"[✗] Laptop LLM Service (Port {laptop_port}): OFFLINE" + RESET)
+        print(RED + f"  [FAIL] Laptop LLM Service (Port {laptop_port}): OFFLINE" + RESET)
 
     # 2. Local Backend server
     try:
         r = requests.get("http://127.0.0.1:18080/api/health", timeout=3.0)
         if r.status_code == 200:
             data = r.json()
-            print(GREEN + f"[✓] Local Backend Server (Port 18080): ONLINE (Indexed chunks: {data.get('indexed_chunks')})" + RESET)
+            print(GREEN + f"  [OK] Local Backend Server (Port 18080): ONLINE (Indexed chunks: {data.get('indexed_chunks')})" + RESET)
         else:
-            print(YELLOW + f"[!] Local Backend Server returned status {r.status_code}" + RESET)
+            print(YELLOW + f"  [!] Local Backend Server returned status {r.status_code}" + RESET)
     except Exception:
-        print(RED + "[✗] Local Backend Server (Port 18080): OFFLINE" + RESET)
+        print(RED + "  [FAIL] Local Backend Server (Port 18080): OFFLINE" + RESET)
 
     # 3. Remote Render Backend
     if render_url:
@@ -186,11 +186,11 @@ def test_services():
             r = requests.get(f"{render_url}/api/health", timeout=6.0)
             if r.status_code == 200:
                 data = r.json()
-                print(GREEN + f"[✓] Remote Render Backend ({render_url}): ONLINE (Indexed chunks: {data.get('indexed_chunks')})" + RESET)
+                print(GREEN + f"  [OK] Remote Render Backend ({render_url}): ONLINE (Indexed chunks: {data.get('indexed_chunks')})" + RESET)
             else:
-                print(YELLOW + f"[!] Render Backend returned status {r.status_code}" + RESET)
+                print(YELLOW + f"  [!] Render Backend returned status {r.status_code}" + RESET)
         except Exception:
-            print(RED + f"[✗] Remote Render Backend ({render_url}): OFFLINE / SLEEPING" + RESET)
+            print(RED + f"  [FAIL] Remote Render Backend ({render_url}): OFFLINE / SLEEPING" + RESET)
     print()
 
 
