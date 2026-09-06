@@ -63,18 +63,32 @@ async def lifespan(app: FastAPI):
     gemini_provider = GeminiProvider(
         api_key=settings.GEMINI_API_KEY,
         model=settings.GEMINI_MODEL,
+        temperature=settings.LLM_TEMPERATURE,
+        top_p=settings.LLM_TOP_P,
     )
     grok_provider = GrokProvider(
         api_key=settings.GROK_API_KEY,
         model=settings.GROK_MODEL,
+        temperature=settings.LLM_TEMPERATURE,
+        top_p=settings.LLM_TOP_P,
+        presence_penalty=settings.LLM_PRESENCE_PENALTY,
+        frequency_penalty=settings.LLM_FREQUENCY_PENALTY,
     )
     groq_provider = GroqProvider(
         api_key=settings.GROQ_API_KEY,
         model=settings.GROQ_MODEL,
+        temperature=settings.LLM_TEMPERATURE,
+        top_p=settings.LLM_TOP_P,
+        presence_penalty=settings.LLM_PRESENCE_PENALTY,
+        frequency_penalty=settings.LLM_FREQUENCY_PENALTY,
     )
     openrouter_provider = OpenRouterProvider(
         api_key=settings.OPENROUTER_API_KEY,
         model=settings.OPENROUTER_MODEL,
+        temperature=settings.LLM_TEMPERATURE,
+        top_p=settings.LLM_TOP_P,
+        presence_penalty=settings.LLM_PRESENCE_PENALTY,
+        frequency_penalty=settings.LLM_FREQUENCY_PENALTY,
     )
 
     # Map provider names to instances

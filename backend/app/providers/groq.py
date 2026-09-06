@@ -12,12 +12,20 @@ class GroqProvider(BaseLLMProvider):
         self,
         api_key: Optional[str] = None,
         model: str = "openai/gpt-oss-120b",
+        temperature: float = 0.7,
+        top_p: float = 0.9,
+        presence_penalty: float = 0.3,
+        frequency_penalty: float = 0.2,
     ):
         self.api_key = api_key.strip() if api_key and api_key.strip() else None
         clean_model = (model or "openai/gpt-oss-120b").strip()
         if ":" in clean_model and not "/" in clean_model:
             clean_model = clean_model.replace(":", "/")
         self.model = clean_model
+        self.temperature = temperature
+        self.top_p = top_p
+        self.presence_penalty = presence_penalty
+        self.frequency_penalty = frequency_penalty
         self.base_url = "https://api.groq.com/openai/v1"
 
     def is_configured(self) -> bool:
@@ -56,7 +64,10 @@ class GroqProvider(BaseLLMProvider):
         payload = {
             "model": self.model,
             "messages": messages,
-            "temperature": 0.2,
+            "temperature": self.temperature,
+            "top_p": self.top_p,
+            "presence_penalty": self.presence_penalty,
+            "frequency_penalty": self.frequency_penalty,
             "max_tokens": 1024,
         }
 

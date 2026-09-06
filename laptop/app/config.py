@@ -32,8 +32,12 @@ class LaptopSettings(BaseSettings):
         description="Max new generation tokens",
     )
     TEMPERATURE: float = Field(
-        default=0.2,
-        description="Generation temperature",
+        default=0.7,
+        description="Generation temperature for varied phrasing (0.6 - 0.8)",
+    )
+    TOP_P: float = Field(
+        default=0.9,
+        description="Nucleus sampling probability threshold",
     )
     USE_LIGHTWEIGHT_ENGINE: bool = Field(
         default=False,
