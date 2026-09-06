@@ -8,9 +8,17 @@ class GeminiProvider(BaseLLMProvider):
 
     name: str = "gemini"
 
-    def __init__(self, api_key: Optional[str] = None, model: str = "gemini-1.5-flash"):
+    def __init__(
+        self,
+        api_key: Optional[str] = None,
+        model: str = "gemini-1.5-flash",
+        temperature: float = 0.7,
+        top_p: float = 0.9,
+    ):
         self.api_key = api_key.strip() if api_key and api_key.strip() else None
         self.model = model or "gemini-1.5-flash"
+        self.temperature = temperature
+        self.top_p = top_p
         self.base_url = "https://generativelanguage.googleapis.com/v1beta"
 
     def is_configured(self) -> bool:
@@ -44,7 +52,8 @@ class GeminiProvider(BaseLLMProvider):
                 }
             ],
             "generationConfig": {
-                "temperature": 0.2,
+                "temperature": self.temperature,
+                "topP": self.top_p,
                 "maxOutputTokens": 1024,
             }
         }

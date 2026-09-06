@@ -100,5 +100,23 @@ class Settings(BaseSettings):
         description="Embedding provider: 'fast', 'gemini', or 'sentence_transformers'",
     )
 
+    # Generation & Phrasing Diversity (Method 1: Dynamic Sampling)
+    LLM_TEMPERATURE: float = Field(
+        default=0.7,
+        description="Generation temperature for lexical diversity (0.6 - 0.8 recommended)",
+    )
+    LLM_TOP_P: float = Field(
+        default=0.9,
+        description="Nucleus sampling top-p probability threshold",
+    )
+    LLM_PRESENCE_PENALTY: float = Field(
+        default=0.3,
+        description="Penalty for repeating vocabulary to encourage varied wording",
+    )
+    LLM_FREQUENCY_PENALTY: float = Field(
+        default=0.2,
+        description="Penalty for repeated token frequency",
+    )
+
 
 settings = Settings()

@@ -8,9 +8,21 @@ class GrokProvider(BaseLLMProvider):
 
     name: str = "grok"
 
-    def __init__(self, api_key: Optional[str] = None, model: str = "grok-2-latest"):
+    def __init__(
+        self,
+        api_key: Optional[str] = None,
+        model: str = "grok-2-latest",
+        temperature: float = 0.7,
+        top_p: float = 0.9,
+        presence_penalty: float = 0.3,
+        frequency_penalty: float = 0.2,
+    ):
         self.api_key = api_key.strip() if api_key and api_key.strip() else None
         self.model = model or "grok-2-latest"
+        self.temperature = temperature
+        self.top_p = top_p
+        self.presence_penalty = presence_penalty
+        self.frequency_penalty = frequency_penalty
         self.base_url = "https://api.x.ai/v1"
 
     def is_configured(self) -> bool:
@@ -49,7 +61,10 @@ class GrokProvider(BaseLLMProvider):
         payload = {
             "model": self.model,
             "messages": messages,
-            "temperature": 0.2,
+            "temperature": self.temperature,
+            "top_p": self.top_p,
+            "presence_penalty": self.presence_penalty,
+            "frequency_penalty": self.frequency_penalty,
             "max_tokens": 1024,
         }
 

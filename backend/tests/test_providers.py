@@ -165,3 +165,25 @@ class TestOrchestratorFailover:
             await orchestrator.answer_question("How do I install?")
 
         assert "Quota exceeded" in str(exc_info.value)
+
+    async def test_provider_sampling_parameters_configuration(self):
+        from backend.app.providers.groq import GroqProvider
+        from backend.app.providers.openrouter import OpenRouterProvider
+        from backend.app.providers.grok import GrokProvider
+
+        gem = GeminiProvider(api_key="test", temperature=0.75, top_p=0.85)
+        assert gem.temperature == 0.75
+        assert gem.top_p == 0.85
+
+        groq = GroqProvider(api_key="test", temperature=0.65, top_p=0.9, presence_penalty=0.4, frequency_penalty=0.25)
+        assert groq.temperature == 0.65
+        assert groq.top_p == 0.9
+        assert groq.presence_penalty == 0.4
+        assert groq.frequency_penalty == 0.25
+
+        openr = OpenRouterProvider(api_key="test", temperature=0.7)
+        assert openr.temperature == 0.7
+        assert openr.presence_penalty == 0.3
+
+        grok = GrokProvider(api_key="test", temperature=0.8)
+        assert grok.temperature == 0.8
