@@ -30,7 +30,7 @@ class GeminiProvider(BaseLLMProvider):
 
         user_content_parts = []
         user_content_parts.append(
-            f"README CONTEXT:\n\n{formatted_context}\n\nUSER QUESTION:\n{question}"
+            f"PRODUCT KNOWLEDGE CONTEXT:\n\n{formatted_context}\n\nUSER QUESTION:\n{question}"
         )
 
         payload = {

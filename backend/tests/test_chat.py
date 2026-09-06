@@ -9,6 +9,10 @@ from backend.app.rag.pipeline import RagPipeline
 from laptop.app.model import LaptopTransformerModel
 
 
+from unittest.mock import patch, AsyncMock
+from backend.app.rag.retriever import RetrievedChunk, ReadmeRetriever
+
+
 @pytest.fixture
 def client():
     with TestClient(app) as c:
@@ -37,6 +41,40 @@ class TestApiEndpointsAndGrounding:
         data = response.json()
         assert "repository" in data
         assert "status" in data
+
+    def test_chat_endpoint_suppresses_sources_and_chunks(self, client):
+        with patch.object(
+            app.state.orchestrator,
+            "answer_question",
+            new_callable=AsyncMock
+        ) as mock_ans:
+            mock_ans.return_value = {
+                "answer": "PrivCloud provides secure private cloud storage.",
+                "provider": "openrouter",
+                "model": "deepseek/deepseek-chat",
+                "sources": [{"file": "README.md", "section": "Overview"}],
+                "retrieved_chunks_count": 3,
+                "failover": False,
+                "failover_reason": None,
+                "failover_trail": [],
+            }
+            resp = client.post("/api/chat", json={"message": "What is PrivCloud?"})
+            assert resp.status_code == 200
+            data = resp.json()
+            assert data["answer"] == "PrivCloud provides secure private cloud storage."
+            assert data["sources"] == []
+            assert data["retrieved_chunks_count"] == 0
+
+    def test_retriever_context_formatting_has_no_chunk_headers(self):
+        chunks = [
+            RetrievedChunk(text="Chunk one content", section="Section 1", heading_level=1, file="README.md", repository="repo", branch="main", score=0.9),
+            RetrievedChunk(text="Chunk two content", section="Section 2", heading_level=2, file="README.md", repository="repo", branch="main", score=0.8),
+        ]
+        formatted = ReadmeRetriever.format_context_for_prompt(chunks)
+        assert "[Context Chunk" not in formatted
+        assert "Section 1" not in formatted
+        assert "Chunk one content" in formatted
+        assert "Chunk two content" in formatted
 
     @pytest.mark.asyncio
     async def test_section_26_strict_grounding(self, sample_readme_text):

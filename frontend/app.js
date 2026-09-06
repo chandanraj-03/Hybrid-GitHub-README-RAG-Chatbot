@@ -319,30 +319,6 @@ function appendAssistantMessage(data) {
 
   const parsedMarkdown = window.marked ? marked.parse(data.answer) : escapeHtml(data.answer);
 
-  let sourcesHtml = "";
-  if (data.sources && data.sources.length > 0) {
-    const pills = data.sources.map(s => `
-      <div class="source-pill">
-        <span class="file">${escapeHtml(s.file)}</span>
-        <span class="arrow">➔</span>
-        <span class="section">${escapeHtml(s.section)}</span>
-      </div>
-    `).join("");
-
-    sourcesHtml = `
-      <div class="sources-card">
-        <div class="sources-title">
-          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path>
-            <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path>
-          </svg>
-          README Knowledge Sources
-        </div>
-        <div class="sources-pills-list">${pills}</div>
-      </div>
-    `;
-  }
-
   row.innerHTML = `
     <div class="message-bubble">
       <div class="provider-header">
@@ -352,7 +328,6 @@ function appendAssistantMessage(data) {
       <div class="message-content">
         ${parsedMarkdown}
       </div>
-      ${sourcesHtml}
     </div>
   `;
 

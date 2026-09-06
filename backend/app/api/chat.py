@@ -62,17 +62,14 @@ async def chat_endpoint(payload: ChatRequest, request: Request) -> ChatResponse:
             answer=result["answer"],
             provider=result["provider"],
             model=result["model"],
-            sources=[
-                SourceCitation(file=s.get("file", "README.md"), section=s.get("section", "Overview"))
-                for s in result.get("sources", [])
-            ],
+            sources=[],
             failover=result.get("failover", False),
             failover_reason=result.get("failover_reason"),
             failover_trail=[
                 FailoverHop(provider=h.get("provider", ""), reason=h.get("reason", ""))
                 for h in result.get("failover_trail", [])
             ],
-            retrieved_chunks_count=result.get("retrieved_chunks_count", 0),
+            retrieved_chunks_count=0,
         )
     except Exception as exc:
         raise HTTPException(status_code=500, detail=str(exc))

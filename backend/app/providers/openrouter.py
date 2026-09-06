@@ -38,7 +38,7 @@ class OpenRouterProvider(BaseLLMProvider):
             "X-Title": "GitHub README RAG Chatbot",
         }
 
-        user_content = f"README CONTEXT:\n\n{formatted_context}\n\nUSER QUESTION:\n{question}"
+        user_content = f"PRODUCT KNOWLEDGE CONTEXT:\n\n{formatted_context}\n\nUSER QUESTION:\n{question}"
 
         messages = [{"role": "system", "content": SYSTEM_GROUNDING_PROMPT}]
 

@@ -114,15 +114,6 @@ def ask_question(question: str, conversation_history: list):
             print(f"\n{badge}")
             print(BOLD + "\n" + answer.strip() + RESET + "\n")
 
-            # Display citations
-            if sources:
-                print(DIM + "📚 Sources Grounding:" + RESET)
-                for s in sources:
-                    sec = s.get("section", "Overview")
-                    filename = s.get("file", "README.md")
-                    print(DIM + f"   • {filename} ➔ {sec}" + RESET)
-            print()
-
             # Append to history
             conversation_history.append({"role": "user", "content": question})
             conversation_history.append({"role": "assistant", "content": answer})

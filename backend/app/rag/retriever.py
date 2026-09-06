@@ -60,14 +60,10 @@ class ReadmeRetriever:
     def format_context_for_prompt(chunks: List[RetrievedChunk]) -> str:
         """Formats retrieved chunks into a standardized context block for LLM prompts."""
         if not chunks:
-            return "No README context available."
+            return "No product context available."
 
-        formatted_blocks = []
-        for i, chunk in enumerate(chunks, 1):
-            block = f"--- [Context Chunk {i}: Section '{chunk.section}'] ---\n{chunk.text.strip()}"
-            formatted_blocks.append(block)
-
-        return "\n\n".join(formatted_blocks)
+        formatted_blocks = [chunk.text.strip() for chunk in chunks if chunk.text.strip()]
+        return "\n\n---\n\n".join(formatted_blocks)
 
     @staticmethod
     def extract_sources(chunks: List[RetrievedChunk]) -> List[Dict[str, str]]:
